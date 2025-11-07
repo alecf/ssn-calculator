@@ -66,13 +66,19 @@ export default function Home() {
     : [];
 
   // Chart data
+  // Only include currentScenario if it's not already in the selected saved scenarios
+  const currentScenarioIsSaved = scenarios.some((s) => s.id === currentScenario.id);
   const chartData = [
-    {
-      name: currentScenario.name,
-      benefits: currentResults.cumulativeBenefits,
-      color: '#3b82f6',
-      claimingAge: currentScenario.claimingAge,
-    },
+    ...(currentScenarioIsSaved
+      ? []
+      : [
+          {
+            name: currentScenario.name,
+            benefits: currentResults.cumulativeBenefits,
+            color: '#3b82f6',
+            claimingAge: currentScenario.claimingAge,
+          },
+        ]),
     ...selectedResults.map((result, i) => ({
       name: result.scenario.name,
       benefits: result.cumulativeBenefits,
