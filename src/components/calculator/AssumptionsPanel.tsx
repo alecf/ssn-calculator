@@ -87,11 +87,13 @@ export function AssumptionsPanel({
   ];
 
   const handlePresetClick = (presetKey: AssumptionPreset) => {
-    onPresetChange(presetKey);
     const presetValues = ASSUMPTION_PRESETS[presetKey];
+    // Update all values in a single batch by calling the change handlers
+    // in sequence, then finally update the preset
     onGrowthRateChange(presetValues.investmentGrowthRate);
     onColaRateChange(presetValues.colaRate);
     onInflationRateChange(presetValues.inflationRate);
+    onPresetChange(presetKey);
   };
 
   return (

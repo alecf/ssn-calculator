@@ -296,19 +296,19 @@ export default function Home() {
                   colaRate={currentScenario.colaRate}
                   inflationRate={currentScenario.inflationRate}
                   onPresetChange={(preset) =>
-                    setCurrentScenario({
-                      ...currentScenario,
+                    setCurrentScenario((prev) => ({
+                      ...prev,
                       assumptionPreset: preset as AssumptionPreset | 'custom',
-                    })
+                    }))
                   }
                   onGrowthRateChange={(rate) =>
-                    setCurrentScenario({ ...currentScenario, investmentGrowthRate: rate })
+                    setCurrentScenario((prev) => ({ ...prev, investmentGrowthRate: rate }))
                   }
                   onColaRateChange={(rate) =>
-                    setCurrentScenario({ ...currentScenario, colaRate: rate })
+                    setCurrentScenario((prev) => ({ ...prev, colaRate: rate }))
                   }
                   onInflationRateChange={(rate) =>
-                    setCurrentScenario({ ...currentScenario, inflationRate: rate })
+                    setCurrentScenario((prev) => ({ ...prev, inflationRate: rate }))
                   }
                 />
               </TabsContent>
