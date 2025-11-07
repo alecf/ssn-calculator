@@ -111,37 +111,60 @@ export function IndividualInputs({
         <h3 className="text-lg font-semibold">Your Information</h3>
       </div>
 
-      {/* Birth Date */}
-      <div className="space-y-2">
-        <Label htmlFor="birthDate">Birth Date</Label>
-        <Input
-          id="birthDate"
-          type="date"
-          value={birthDate.toISOString().split('T')[0]}
-          onChange={handleBirthDateChange}
-          max={new Date().toISOString().split('T')[0]}
-          className={isFutureBirthDate || isTooYoung ? 'border-red-500' : ''}
-        />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Full Retirement Age:</span>
-          <Badge variant="outline" className="font-mono">
-            {fra.years} years
-            {fra.months > 0 && `, ${fra.months} months`}
-          </Badge>
-          <span className="text-xs">
-            ({new Date(birthDate.getFullYear() + fra.years, birthDate.getMonth() + fra.months, birthDate.getDate()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})
-          </span>
+      {/* Claiming Age Slider */}
+      <div className="space-y-3">
+        <Label>When will you start claiming benefits?</Label>
+        <div className="text-sm text-muted-foreground">
+          Projected monthly benefit: <span className="font-semibold text-foreground">${Math.round(displayedMonthlyBenefit).toLocaleString()}</span>
+          {yearsFromTodayToClaiming !== 0 && (
+            <span className="text-xs ml-2">
+              (nominal dollars in {claimingYear})
+            </span>
+          )}
         </div>
 
-        {isFutureBirthDate && (
-          <div className="text-xs text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/20 p-3 rounded-md">
-            ⚠️ Birth date cannot be in the future. Please enter a valid birth date.
+        <div className="relative py-8">
+          {/* FRA Indicator */}
+          <div
+            className="absolute top-0 w-0.5 h-6 bg-primary/40"
+            style={{
+              left: `${((fraAge - 62) / 8) * 100}%`,
+            }}
+          >
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-primary">
+              FRA
+            </div>
+          </div>
+
+          <Slider
+            value={[claimingAge]}
+            onValueChange={(value) => onClaimingAgeChange(value[0])}
+            min={62}
+            max={70}
+            step={1}
+            className="py-4"
+          />
+
+          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            <span>62 ({getYearForAge(62)})<br/>(Early)</span>
+            <span className="text-center">
+              <span className="font-bold text-lg text-foreground block">{claimingAge} ({getYearForAge(claimingAge)})</span>
+              {claimingAge === Math.floor(fraAge) && 'Full Benefits'}
+              {claimingAge < fraAge && `${Math.abs(Math.round(calculateEarlyReductionPercentage(claimingAge, fra) * 100))}% reduced`}
+              {claimingAge > fraAge && `+${Math.round(calculateDelayedCreditPercentage(claimingAge, fra) * 100)}% bonus`}
+            </span>
+            <span>70 ({getYearForAge(70)})<br/>(Max)</span>
+          </div>
+        </div>
+
+        {claimingAge < fraAge && (
+          <div className="text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
+            ⚠️ Claiming at age {claimingAge} ({getYearForAge(claimingAge)}) permanently reduces your monthly benefit. Consider if you really need the money now.
           </div>
         )}
-
-        {!isFutureBirthDate && isTooYoung && (
-          <div className="text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
-            ⚠️ You must be at least 18 years old to use this calculator. Social Security benefits cannot be claimed until age 62.
+        {claimingAge === 70 && (
+          <div className="text-xs text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-950/20 p-3 rounded-md">
+            ✓ Maximum monthly benefit! But remember: you won't collect anything until age 70 ({getYearForAge(70)}).
           </div>
         )}
       </div>
@@ -211,60 +234,37 @@ export function IndividualInputs({
         )}
       </div>
 
-      {/* Claiming Age Slider */}
-      <div className="space-y-3">
-        <Label>When will you start claiming benefits?</Label>
-        <div className="text-sm text-muted-foreground">
-          Projected monthly benefit: <span className="font-semibold text-foreground">${Math.round(displayedMonthlyBenefit).toLocaleString()}</span>
-          {yearsFromTodayToClaiming !== 0 && (
-            <span className="text-xs ml-2">
-              (nominal dollars in {claimingYear})
-            </span>
-          )}
+      {/* Birth Date */}
+      <div className="space-y-2">
+        <Label htmlFor="birthDate">Birth Date</Label>
+        <Input
+          id="birthDate"
+          type="date"
+          value={birthDate.toISOString().split('T')[0]}
+          onChange={handleBirthDateChange}
+          max={new Date().toISOString().split('T')[0]}
+          className={isFutureBirthDate || isTooYoung ? 'border-red-500' : ''}
+        />
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Full Retirement Age:</span>
+          <Badge variant="outline" className="font-mono">
+            {fra.years} years
+            {fra.months > 0 && `, ${fra.months} months`}
+          </Badge>
+          <span className="text-xs">
+            ({new Date(birthDate.getFullYear() + fra.years, birthDate.getMonth() + fra.months, birthDate.getDate()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})
+          </span>
         </div>
 
-        <div className="relative py-8">
-          {/* FRA Indicator */}
-          <div
-            className="absolute top-0 w-0.5 h-6 bg-primary/40"
-            style={{
-              left: `${((fraAge - 62) / 8) * 100}%`,
-            }}
-          >
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-primary">
-              FRA
-            </div>
-          </div>
-
-          <Slider
-            value={[claimingAge]}
-            onValueChange={(value) => onClaimingAgeChange(value[0])}
-            min={62}
-            max={70}
-            step={1}
-            className="py-4"
-          />
-
-          <div className="flex justify-between text-xs text-muted-foreground mt-2">
-            <span>62 ({getYearForAge(62)})<br/>(Early)</span>
-            <span className="text-center">
-              <span className="font-bold text-lg text-foreground block">{claimingAge} ({getYearForAge(claimingAge)})</span>
-              {claimingAge === Math.floor(fraAge) && 'Full Benefits'}
-              {claimingAge < fraAge && `${Math.abs(Math.round(calculateEarlyReductionPercentage(claimingAge, fra) * 100))}% reduced`}
-              {claimingAge > fraAge && `+${Math.round(calculateDelayedCreditPercentage(claimingAge, fra) * 100)}% bonus`}
-            </span>
-            <span>70 ({getYearForAge(70)})<br/>(Max)</span>
-          </div>
-        </div>
-
-        {claimingAge < fraAge && (
-          <div className="text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
-            ⚠️ Claiming at age {claimingAge} ({getYearForAge(claimingAge)}) permanently reduces your monthly benefit. Consider if you really need the money now.
+        {isFutureBirthDate && (
+          <div className="text-xs text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/20 p-3 rounded-md">
+            ⚠️ Birth date cannot be in the future. Please enter a valid birth date.
           </div>
         )}
-        {claimingAge === 70 && (
-          <div className="text-xs text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-950/20 p-3 rounded-md">
-            ✓ Maximum monthly benefit! But remember: you won't collect anything until age 70 ({getYearForAge(70)}).
+
+        {!isFutureBirthDate && isTooYoung && (
+          <div className="text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
+            ⚠️ You must be at least 18 years old to use this calculator. Social Security benefits cannot be claimed until age 62.
           </div>
         )}
       </div>
