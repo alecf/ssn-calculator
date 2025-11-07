@@ -80,6 +80,7 @@ export default function Home() {
           {
             name: currentScenario.name,
             benefits: currentResults.cumulativeBenefits,
+            yearlyBenefits: currentResults.yearlyBenefits,
             color: '#3b82f6',
             claimingAge: currentScenario.claimingAge,
           },
@@ -87,6 +88,7 @@ export default function Home() {
     ...selectedResults.map((result, i) => ({
       name: result.scenario.name,
       benefits: result.cumulativeBenefits,
+      yearlyBenefits: result.yearlyBenefits,
       color: ['#10b981', '#8b5cf6', '#f59e0b', '#ef4444'][i] || '#06b6d4',
       claimingAge: result.scenario.claimingAge,
     })),

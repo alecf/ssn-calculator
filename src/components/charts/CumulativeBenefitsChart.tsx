@@ -17,13 +17,15 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
+  TooltipProps,
 } from 'recharts';
-import type { CumulativeBenefit } from '@/types/scenario';
+import type { CumulativeBenefit, YearlyBenefit } from '@/types/scenario';
 
 interface CumulativeBenefitsChartProps {
   data: Array<{
     name: string;
     benefits: CumulativeBenefit[];
+    yearlyBenefits: YearlyBenefit[];
     color: string;
     claimingAge: number;
   }>;
@@ -35,6 +37,79 @@ interface CumulativeBenefitsChartProps {
     scenario2: string;
   }>;
 }
+
+interface CustomTooltipProps extends TooltipProps<number, string> {
+  scenarioData: Array<{
+    name: string;
+    yearlyBenefits: YearlyBenefit[];
+    color: string;
+  }>;
+  displayMode: 'today-dollars' | 'future-dollars';
+}
+
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  scenarioData,
+  displayMode,
+}: CustomTooltipProps) => {
+  if (!active || !payload || !payload.length) {
+    return null;
+  }
+
+  const age = label as number;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  return (
+    <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+      <p className="font-semibold mb-2">Age {age}</p>
+      <div className="space-y-2">
+        {payload.map((entry, index) => {
+          const scenarioName = entry.name;
+          const cumulativeValue = entry.value as number;
+
+          // Find the corresponding yearly benefit for monthly amount
+          const scenario = scenarioData.find(s => s.name === scenarioName);
+          const yearlyBenefit = scenario?.yearlyBenefits.find(yb => yb.age === age);
+          const monthlyBenefit = yearlyBenefit
+            ? (displayMode === 'today-dollars'
+                ? yearlyBenefit.inflationAdjusted
+                : yearlyBenefit.monthlyBenefit)
+            : 0;
+
+          return (
+            <div key={`tooltip-${index}`} className="text-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="font-medium">{scenarioName}</span>
+              </div>
+              <div className="ml-5 text-xs space-y-0.5">
+                <div className="text-muted-foreground">
+                  Monthly: <span className="text-foreground font-medium">{formatCurrency(monthlyBenefit)}</span>
+                </div>
+                <div className="text-muted-foreground">
+                  Cumulative: <span className="text-foreground font-medium">{formatCurrency(cumulativeValue)}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const COLORS = [
   '#3b82f6', // blue
@@ -148,13 +223,16 @@ export function CumulativeBenefitsChart({
             className="text-xs"
           />
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
-            labelFormatter={(label) => `Age ${label}`}
-            contentStyle={{
-              backgroundColor: 'hsl(var(--background))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: '8px',
-            }}
+            content={
+              <CustomTooltip
+                scenarioData={data.map(s => ({
+                  name: s.name,
+                  yearlyBenefits: s.yearlyBenefits,
+                  color: s.color,
+                }))}
+                displayMode={displayMode}
+              />
+            }
           />
           <Legend
             wrapperStyle={{ paddingTop: '20px' }}
