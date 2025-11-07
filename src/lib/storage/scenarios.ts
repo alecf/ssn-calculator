@@ -61,23 +61,40 @@ export async function saveScenario(scenario: Scenario): Promise<void> {
  * @returns Scenario or null if not found
  */
 export async function getScenario(id: string): Promise<Scenario | null> {
-  const scenario = await get<Scenario>(getScenarioKey(id));
+  const scenario = await get<any>(getScenarioKey(id));
 
   if (!scenario) {
     return null;
   }
 
   try {
-    // Validate and parse dates (IndexedDB stores dates as strings)
+    // Validate and parse dates and numbers (IndexedDB may store them as strings)
+    const lifetimeAge = typeof scenario.lifetimeAge === 'string'
+      ? parseInt(scenario.lifetimeAge, 10)
+      : scenario.lifetimeAge;
+
     const parsed = ScenarioSchema.parse({
-      ...scenario,
+      id: scenario.id,
+      name: scenario.name,
       createdAt: new Date(scenario.createdAt),
       updatedAt: new Date(scenario.updatedAt),
       birthDate: new Date(scenario.birthDate),
+      benefitAmount: scenario.benefitAmount,
+      claimingAge: scenario.claimingAge,
+      includeSpouse: scenario.includeSpouse,
       spouseBirthDate: scenario.spouseBirthDate
         ? new Date(scenario.spouseBirthDate)
         : undefined,
-    });
+      spouseBenefitAmount: scenario.spouseBenefitAmount,
+      spouseClaimingAge: scenario.spouseClaimingAge,
+      assumptionPreset: scenario.assumptionPreset,
+      investmentGrowthRate: scenario.investmentGrowthRate,
+      colaRate: scenario.colaRate,
+      inflationRate: scenario.inflationRate,
+      displayMode: scenario.displayMode,
+      includeOpportunityCost: scenario.includeOpportunityCost,
+      lifetimeAge,
+    }) as unknown as Scenario;
     return parsed;
   } catch (error) {
     console.error('Invalid scenario data:', error);

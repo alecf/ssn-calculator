@@ -82,7 +82,7 @@ export const ScenarioSchema = z.object({
   // Display preferences
   displayMode: z.enum(['today-dollars', 'future-dollars']),
   includeOpportunityCost: z.boolean(),
-  lifetimeAge: z.enum([85, 90, 95, 100]),
+  lifetimeAge: z.union([z.literal(85), z.literal(90), z.literal(95), z.literal(100)]),
 });
 
 /**
