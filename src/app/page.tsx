@@ -97,6 +97,11 @@ export default function Home() {
   const benefitFeedback = getBenefitAmountFeedback(currentScenario.benefitAmount, maxBenefit);
   const today = new Date();
   const isFutureBirthDate = currentScenario.birthDate > today;
+
+  // Calculate current age for chart X-axis
+  const currentAge = Math.floor(
+    (today.getTime() - currentScenario.birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+  );
   const minValidAge = 18;
   const minBirthDate = new Date(
     today.getFullYear() - minValidAge,
@@ -179,6 +184,7 @@ export default function Home() {
               <CumulativeBenefitsChart
                 data={chartData}
                 displayMode={currentScenario.displayMode}
+                currentAge={currentAge}
                 breakevens={breakevens}
               />
             </Card>

@@ -28,6 +28,7 @@ interface CumulativeBenefitsChartProps {
     claimingAge: number;
   }>;
   displayMode: 'today-dollars' | 'future-dollars';
+  currentAge?: number;
   breakevens?: Array<{
     age: number;
     scenario1: string;
@@ -47,6 +48,7 @@ const COLORS = [
 export function CumulativeBenefitsChart({
   data,
   displayMode,
+  currentAge,
   breakevens = [],
 }: CumulativeBenefitsChartProps) {
   if (data.length === 0) {
@@ -133,6 +135,8 @@ export function CumulativeBenefitsChart({
             dataKey="age"
             label={{ value: 'Age', position: 'insideBottom', offset: -5 }}
             className="text-xs"
+            domain={currentAge ? [currentAge, 90] : ['auto', 'auto']}
+            type="number"
           />
           <YAxis
             label={{
