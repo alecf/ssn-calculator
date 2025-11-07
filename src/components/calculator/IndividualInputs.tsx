@@ -177,6 +177,12 @@ export function IndividualInputs({
             </Tooltip>
           </TooltipProvider>
         </div>
+
+        {feedback.level === 'error' && (
+          <div className="text-xs text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/20 p-3 rounded-md">
+            ⚠️ {feedback.description}
+          </div>
+        )}
       </div>
 
       {/* Claiming Age Slider */}

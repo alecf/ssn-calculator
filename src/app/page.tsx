@@ -20,6 +20,8 @@ import { createDefaultScenario } from '@/constants/defaults';
 import { useScenarios } from '@/hooks/useScenarios';
 import { useCalculations, useMultipleCalculations } from '@/hooks/useCalculations';
 import { findBreakevenAge } from '@/lib/calculations/breakeven';
+import { getBenefitAmountFeedback } from '@/lib/validation/feedback';
+import { getMaxBenefit } from '@/constants/ssaRules';
 import type { Scenario } from '@/types/scenario';
 import type { AssumptionPreset } from '@/constants/ssaRules';
 
@@ -87,7 +89,16 @@ export default function Home() {
     })),
   ];
 
+  // Validate current scenario
+  const maxBenefit = getMaxBenefit();
+  const benefitFeedback = getBenefitAmountFeedback(currentScenario.benefitAmount, maxBenefit);
+  const isValidScenario = benefitFeedback.level !== 'error' && currentScenario.benefitAmount > 0;
+
   const handleSaveScenario = async () => {
+    if (!isValidScenario) {
+      return; // Don't save invalid scenarios
+    }
+
     try {
       await save(currentScenario);
       // Create a new scenario for the next one
@@ -271,10 +282,19 @@ export default function Home() {
                   className="flex-1 px-3 py-2 border rounded-md"
                   placeholder="Scenario name..."
                 />
-                <Button onClick={handleSaveScenario} size="lg">
+                <Button
+                  onClick={handleSaveScenario}
+                  size="lg"
+                  disabled={!isValidScenario}
+                >
                   💾 Save Scenario
                 </Button>
               </div>
+              {!isValidScenario && (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                  Cannot save: Please fix validation errors above
+                </p>
+              )}
             </Card>
 
             {/* Chart */}
