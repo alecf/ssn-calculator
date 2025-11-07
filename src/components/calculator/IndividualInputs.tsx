@@ -23,6 +23,7 @@ import {
   getFRAAsDecimal,
   calculateEarlyReductionPercentage,
   calculateDelayedCreditPercentage,
+  calculateBenefit,
 } from '@/lib/calculations/ssaBenefits';
 import { getMaxBenefit } from '@/constants/ssaRules';
 import { getBenefitAmountFeedback, getFeedbackVariant } from '@/lib/validation/feedback';
