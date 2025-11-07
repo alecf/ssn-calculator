@@ -92,7 +92,20 @@ export default function Home() {
   // Validate current scenario
   const maxBenefit = getMaxBenefit();
   const benefitFeedback = getBenefitAmountFeedback(currentScenario.benefitAmount, maxBenefit);
-  const isValidScenario = benefitFeedback.level !== 'error' && currentScenario.benefitAmount > 0;
+  const today = new Date();
+  const isFutureBirthDate = currentScenario.birthDate > today;
+  const minValidAge = 18;
+  const minBirthDate = new Date(
+    today.getFullYear() - minValidAge,
+    today.getMonth(),
+    today.getDate()
+  );
+  const isTooYoung = currentScenario.birthDate > minBirthDate;
+  const isValidScenario =
+    benefitFeedback.level !== 'error' &&
+    currentScenario.benefitAmount > 0 &&
+    !isFutureBirthDate &&
+    !isTooYoung;
 
   const handleSaveScenario = async () => {
     if (!isValidScenario) {

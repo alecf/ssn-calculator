@@ -60,6 +60,17 @@ export function IndividualInputs({
     }
   };
 
+  // Validate birth date
+  const today = new Date();
+  const isFutureBirthDate = birthDate > today;
+  const minValidAge = 18;
+  const minBirthDate = new Date(
+    today.getFullYear() - minValidAge,
+    today.getMonth(),
+    today.getDate()
+  );
+  const isTooYoung = birthDate > minBirthDate;
+
   const handleBenefitDollarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
     if (!isNaN(value) && value >= 0) {
@@ -89,6 +100,7 @@ export function IndividualInputs({
           value={birthDate.toISOString().split('T')[0]}
           onChange={handleBirthDateChange}
           max={new Date().toISOString().split('T')[0]}
+          className={isFutureBirthDate || isTooYoung ? 'border-red-500' : ''}
         />
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Full Retirement Age:</span>
@@ -97,6 +109,18 @@ export function IndividualInputs({
             {fra.months > 0 && `, ${fra.months} months`}
           </Badge>
         </div>
+
+        {isFutureBirthDate && (
+          <div className="text-xs text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/20 p-3 rounded-md">
+            ⚠️ Birth date cannot be in the future. Please enter a valid birth date.
+          </div>
+        )}
+
+        {!isFutureBirthDate && isTooYoung && (
+          <div className="text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
+            ⚠️ You must be at least 18 years old to use this calculator. Social Security benefits cannot be claimed until age 62.
+          </div>
+        )}
       </div>
 
       {/* Benefit Amount */}
