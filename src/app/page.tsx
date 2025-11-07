@@ -154,22 +154,20 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8">
         {/* Welcome message - full width, dismissable */}
         {showWelcome && (
-          <Alert className="mb-6">
-            <div className="flex items-center justify-between">
-              <AlertDescription className="text-sm">
-                👋 <strong>Welcome!</strong> Configure your retirement scenario below,
-                then save it to compare different claiming strategies. The chart shows
-                cumulative benefits over your lifetime.
-              </AlertDescription>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowWelcome(false)}
-                className="ml-4 h-6 w-6 p-0"
-              >
-                ✕
-              </Button>
+          <Alert className="mb-6 !flex !flex-row items-center gap-4">
+            <div className="text-sm flex-1">
+              👋 <strong>Welcome!</strong> Configure your retirement scenario below,
+              then save it to compare different claiming strategies. The chart shows
+              cumulative benefits over your lifetime.
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowWelcome(false)}
+              className="h-6 w-6 p-0 shrink-0"
+            >
+              ✕
+            </Button>
           </Alert>
         )}
 
