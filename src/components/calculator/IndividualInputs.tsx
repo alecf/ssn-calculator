@@ -19,7 +19,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { calculateFRA, getFRAAsDecimal } from '@/lib/calculations/ssaBenefits';
+import {
+  calculateFRA,
+  getFRAAsDecimal,
+  calculateEarlyReductionPercentage,
+  calculateDelayedCreditPercentage,
+} from '@/lib/calculations/ssaBenefits';
 import { getMaxBenefit } from '@/constants/ssaRules';
 import { getBenefitAmountFeedback, getFeedbackVariant } from '@/lib/validation/feedback';
 
@@ -205,8 +210,8 @@ export function IndividualInputs({
             <span className="text-center">
               <span className="font-bold text-lg text-foreground block">{claimingAge}</span>
               {claimingAge === Math.floor(fraAge) && 'Full Benefits'}
-              {claimingAge < fraAge && `${Math.round(((fraAge - claimingAge) / 8) * 100)}% reduced`}
-              {claimingAge > fraAge && `+${Math.round(((claimingAge - fraAge) / 3) * 100)}% bonus`}
+              {claimingAge < fraAge && `${Math.abs(Math.round(calculateEarlyReductionPercentage(claimingAge, fra) * 100))}% reduced`}
+              {claimingAge > fraAge && `+${Math.round(calculateDelayedCreditPercentage(claimingAge, fra) * 100)}% bonus`}
             </span>
             <span>70<br/>(Max)</span>
           </div>
