@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,29 +16,129 @@ import { SpouseInputs } from '@/components/calculator/SpouseInputs';
 import { AssumptionsPanel } from '@/components/calculator/AssumptionsPanel';
 import { CumulativeBenefitsChart } from '@/components/charts/CumulativeBenefitsChart';
 import { ScenarioCard } from '@/components/scenarios/ScenarioCard';
-import { createDefaultScenario } from '@/constants/defaults';
+import { SettingsDialog } from '@/components/settings/BirthdateSettingsDialog';
+import { createDefaultScenario, getSuggestedScenarioName } from '@/constants/defaults';
 import { useScenarios } from '@/hooks/useScenarios';
 import { useCalculations, useMultipleCalculations } from '@/hooks/useCalculations';
 import { findBreakevenAge } from '@/lib/calculations/breakeven';
 import { getBenefitAmountFeedback } from '@/lib/validation/feedback';
 import { getMaxBenefit } from '@/constants/ssaRules';
+import {
+  loadBirthdate,
+  saveBirthdate,
+  loadSpouseBirthdate,
+  saveSpouseBirthdate,
+  loadIncludeSpouse,
+  saveIncludeSpouse,
+} from '@/lib/storage/preferences';
 import type { Scenario } from '@/types/scenario';
 import type { AssumptionPreset } from '@/constants/ssaRules';
 
 export default function Home() {
+  // Initialize with default scenario
+  const defaultScenario = createDefaultScenario({ name: 'Current Scenario' });
+
   // Current scenario being edited
-  const [currentScenario, setCurrentScenario] = useState<Scenario>(
-    createDefaultScenario({ name: 'New Scenario' })
-  );
+  const [currentScenario, setCurrentScenario] = useState<Scenario>(defaultScenario);
+
+  // Track which scenario is being edited (if any) and if it's dirty
+  const [editingScenarioId, setEditingScenarioId] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [originalScenarioValues, setOriginalScenarioValues] = useState<Scenario | null>(null);
 
   // Saved scenarios
-  const { scenarios, save, deleteScenario } = useScenarios();
+  const { scenarios, save, deleteScenario, update } = useScenarios();
 
   // Selected scenarios for comparison
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
 
   // Welcome message visibility
   const [showWelcome, setShowWelcome] = useState(true);
+
+  // Settings dialog visibility
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Track if component has mounted (for hydration)
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Global spouse settings (persist across scenarios)
+  const [globalSpouseBirthDate, setGlobalSpouseBirthDate] = useState<Date>(
+    new Date(defaultScenario.birthDate.getFullYear() - 2, defaultScenario.birthDate.getMonth(), 15)
+  );
+  const [includeSpouseGlobally, setIncludeSpouseGlobally] = useState(false);
+
+  // Load birthdate preferences from storage on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        // Load user's birthdate preference
+        const savedBirthdate = await loadBirthdate();
+        if (savedBirthdate) {
+          setCurrentScenario((prev) => ({
+            ...prev,
+            birthDate: savedBirthdate,
+          }));
+        }
+
+        // Load spouse birthdate preference
+        const savedSpouseBirthdate = await loadSpouseBirthdate();
+        if (savedSpouseBirthdate) {
+          setGlobalSpouseBirthDate(savedSpouseBirthdate);
+        }
+
+        // Load include spouse preference
+        const savedIncludeSpouse = await loadIncludeSpouse();
+        if (savedIncludeSpouse) {
+          setIncludeSpouseGlobally(savedIncludeSpouse);
+        }
+      } catch (error) {
+        console.error('Failed to load preferences:', error);
+      } finally {
+        setIsMounted(true);
+      }
+    };
+
+    loadPreferences();
+  }, []);
+
+  // Save birthdate preference whenever it changes
+  useEffect(() => {
+    if (!isMounted) return;
+
+    try {
+      saveBirthdate(currentScenario.birthDate).catch((error) => {
+        console.error('Failed to save birthdate:', error);
+      });
+    } catch (error) {
+      console.error('Failed to save birthdate:', error);
+    }
+  }, [currentScenario.birthDate, isMounted]);
+
+  // Save spouse birthdate preference whenever it changes
+  useEffect(() => {
+    if (!isMounted) return;
+
+    try {
+      saveSpouseBirthdate(globalSpouseBirthDate).catch((error) => {
+        console.error('Failed to save spouse birthdate:', error);
+      });
+    } catch (error) {
+      console.error('Failed to save spouse birthdate:', error);
+    }
+  }, [globalSpouseBirthDate, isMounted]);
+
+  // Save include spouse preference whenever it changes
+  useEffect(() => {
+    if (!isMounted) return;
+
+    try {
+      saveIncludeSpouse(includeSpouseGlobally).catch((error) => {
+        console.error('Failed to save include spouse setting:', error);
+      });
+    } catch (error) {
+      console.error('Failed to save include spouse setting:', error);
+    }
+  }, [includeSpouseGlobally, isMounted]);
 
   // Calculate current scenario
   const currentResults = useCalculations(currentScenario);
@@ -49,48 +149,55 @@ export default function Home() {
   );
   const selectedResults = useMultipleCalculations(selectedScenarioObjects);
 
-  // Calculate breakevens for selected scenarios
-  const breakevens = selectedResults.length >= 2
-    ? selectedResults
-        .slice(0, -1)
-        .map((r1, i) => {
-          const r2 = selectedResults[i + 1];
-          const age = findBreakevenAge(
-            r1.cumulativeBenefits,
-            r2.cumulativeBenefits
-          );
-          return age
-            ? {
-                age: Math.round(age),
-                scenario1: r1.scenario.name,
-                scenario2: r2.scenario.name,
-              }
-            : null;
-        })
-        .filter((b): b is { age: number; scenario1: string; scenario2: string } => b !== null)
-    : [];
+  // Calculate breakevens for all pairs of selected scenarios
+  const breakevens: Array<{ age: number; scenario1: string; scenario2: string }> = [];
+  if (selectedResults.length >= 2) {
+    for (let i = 0; i < selectedResults.length; i++) {
+      for (let j = i + 1; j < selectedResults.length; j++) {
+        const r1 = selectedResults[i];
+        const r2 = selectedResults[j];
+        const age = findBreakevenAge(
+          r1.cumulativeBenefits,
+          r2.cumulativeBenefits
+        );
+        if (age) {
+          breakevens.push({
+            age: Math.round(age),
+            scenario1: r1.scenario.name,
+            scenario2: r2.scenario.name,
+          });
+        }
+      }
+    }
+    // Sort breakevens by age (earliest to latest)
+    breakevens.sort((a, b) => a.age - b.age);
+  }
 
   // Chart data
-  // Only include currentScenario if it's not already in the selected saved scenarios
-  const currentScenarioIsSaved = scenarios.some((s) => s.id === currentScenario.id);
+  // Always show currentScenario unless it's clean AND matches an existing saved scenario
+  const currentScenarioMatchesSaved = editingScenarioId && !isDirty;
   const chartData = [
-    ...(currentScenarioIsSaved
-      ? []
-      : [
+    ...(!currentScenarioMatchesSaved
+      ? [
           {
             name: currentScenario.name,
             benefits: currentResults.cumulativeBenefits,
             yearlyBenefits: currentResults.yearlyBenefits,
             color: '#3b82f6',
             claimingAge: currentScenario.claimingAge,
+            isCurrent: true,
+            strokeWidth: 3,
           },
-        ]),
+        ]
+      : []),
     ...selectedResults.map((result, i) => ({
       name: result.scenario.name,
       benefits: result.cumulativeBenefits,
       yearlyBenefits: result.yearlyBenefits,
       color: ['#10b981', '#8b5cf6', '#f59e0b', '#ef4444'][i] || '#06b6d4',
       claimingAge: result.scenario.claimingAge,
+      isCurrent: false,
+      strokeWidth: 2,
     })),
   ];
 
@@ -117,15 +224,98 @@ export default function Home() {
     !isFutureBirthDate &&
     !isTooYoung;
 
-  const handleSaveScenario = async () => {
+  const handleSave = async () => {
     if (!isValidScenario) {
       return; // Don't save invalid scenarios
     }
 
     try {
-      await save(currentScenario);
+      let scenarioToSave = { ...currentScenario };
+
+      // If spouse is enabled globally, ensure scenario has spouse data
+      if (includeSpouseGlobally) {
+        scenarioToSave = {
+          ...scenarioToSave,
+          includeSpouse: true,
+          spouseBirthDate: scenarioToSave.spouseBirthDate || globalSpouseBirthDate,
+          spouseBenefitAmount:
+            scenarioToSave.spouseBenefitAmount || scenarioToSave.benefitAmount * 0.5,
+          spouseClaimingAge: scenarioToSave.spouseClaimingAge || scenarioToSave.claimingAge,
+        };
+      }
+
+      // If editing an existing scenario, update it; otherwise save as new
+      if (editingScenarioId) {
+        await update(editingScenarioId, scenarioToSave);
+      } else {
+        await save(scenarioToSave);
+      }
+
+      // Clear editing state
+      setEditingScenarioId(null);
+      setIsDirty(false);
+      setOriginalScenarioValues(null);
+
       // Create a new scenario for the next one
-      setCurrentScenario(createDefaultScenario({ name: 'New Scenario' }));
+      const newScenario = createDefaultScenario({ name: 'Current Scenario' });
+      if (includeSpouseGlobally) {
+        newScenario.includeSpouse = true;
+        newScenario.spouseBirthDate = globalSpouseBirthDate;
+        newScenario.spouseBenefitAmount = newScenario.benefitAmount * 0.5;
+        newScenario.spouseClaimingAge = newScenario.claimingAge;
+      }
+      setCurrentScenario(newScenario);
+    } catch (error) {
+      console.error('Failed to save scenario:', error);
+    }
+  };
+
+  const handleSaveAsNew = async () => {
+    if (!isValidScenario) {
+      return; // Don't save invalid scenarios
+    }
+
+    try {
+      // Generate a default name based on claiming age and assumptions
+      const generatedName = getSuggestedScenarioName(
+        currentScenario.claimingAge,
+        currentScenario.assumptionPreset
+      );
+
+      let scenarioToSave = {
+        ...currentScenario,
+        name: generatedName,
+        id: crypto.randomUUID(), // Create new ID
+      };
+
+      // If spouse is enabled globally, ensure scenario has spouse data
+      if (includeSpouseGlobally) {
+        scenarioToSave = {
+          ...scenarioToSave,
+          includeSpouse: true,
+          spouseBirthDate: scenarioToSave.spouseBirthDate || globalSpouseBirthDate,
+          spouseBenefitAmount:
+            scenarioToSave.spouseBenefitAmount || scenarioToSave.benefitAmount * 0.5,
+          spouseClaimingAge: scenarioToSave.spouseClaimingAge || scenarioToSave.claimingAge,
+        };
+      }
+
+      await save(scenarioToSave);
+
+      // Clear editing state
+      setEditingScenarioId(null);
+      setIsDirty(false);
+      setOriginalScenarioValues(null);
+
+      // Create a new scenario for the next one
+      const newScenario = createDefaultScenario({ name: 'Current Scenario' });
+      if (includeSpouseGlobally) {
+        newScenario.includeSpouse = true;
+        newScenario.spouseBirthDate = globalSpouseBirthDate;
+        newScenario.spouseBenefitAmount = newScenario.benefitAmount * 0.5;
+        newScenario.spouseClaimingAge = newScenario.claimingAge;
+      }
+      setCurrentScenario(newScenario);
     } catch (error) {
       console.error('Failed to save scenario:', error);
     }
@@ -135,6 +325,34 @@ export default function Home() {
     setSelectedScenarios((prev) =>
       prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
     );
+  };
+
+  const handleRenameScenario = async (id: string, newName: string) => {
+    try {
+      await update(id, { name: newName });
+    } catch (error) {
+      console.error('Failed to rename scenario:', error);
+    }
+  };
+
+  const handleResetScenario = () => {
+    const newScenario = createDefaultScenario({ name: 'Current Scenario' });
+    if (includeSpouseGlobally) {
+      newScenario.includeSpouse = true;
+      newScenario.spouseBirthDate = globalSpouseBirthDate;
+      newScenario.spouseBenefitAmount = newScenario.benefitAmount * 0.5;
+      newScenario.spouseClaimingAge = newScenario.claimingAge;
+    }
+    setCurrentScenario(newScenario);
+    setEditingScenarioId(null);
+    setIsDirty(false);
+    setOriginalScenarioValues(null);
+  };
+
+  // Mark as dirty when any field changes
+  const markDirty = (updatedScenario: Scenario) => {
+    setCurrentScenario(updatedScenario);
+    setIsDirty(true);
   };
 
   return (
@@ -151,8 +369,26 @@ export default function Home() {
                 Find the optimal age to start collecting benefits
               </p>
             </div>
-            <div className="text-xs text-muted-foreground">
-              💾 All data saved in your browser
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Birth Date</div>
+                <div className="font-semibold">
+                  {currentScenario.birthDate.toLocaleDateString('en-US', {
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSettings(true)}
+              >
+                ⚙️ Settings
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                💾 All data saved in your browser
+              </div>
             </div>
           </div>
         </div>
@@ -191,13 +427,48 @@ export default function Home() {
               />
             </Card>
 
+            {/* Save Buttons */}
+            <Card className="p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={handleSave}
+                  size="lg"
+                  disabled={!isValidScenario || !editingScenarioId}
+                  variant={editingScenarioId ? 'default' : 'outline'}
+                >
+                  Save
+                </Button>
+                <Button
+                  onClick={handleSaveAsNew}
+                  size="lg"
+                  disabled={!isValidScenario}
+                  variant="default"
+                >
+                  Save as New
+                </Button>
+              </div>
+              <Button
+                onClick={handleResetScenario}
+                size="sm"
+                variant="outline"
+                className="w-full"
+              >
+                ↻ Reset
+              </Button>
+              {!isValidScenario && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Cannot save: Please fix validation errors above
+                </p>
+              )}
+            </Card>
+
             {/* Tabs for Individual/Spouse/Assumptions */}
             <Tabs defaultValue="individual" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className={`grid w-full ${includeSpouseGlobally ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <TabsTrigger value="individual">Individual</TabsTrigger>
-                <TabsTrigger value="spouse">
-                  Spouse {currentScenario.includeSpouse && '✓'}
-                </TabsTrigger>
+                {includeSpouseGlobally && (
+                  <TabsTrigger value="spouse">Spouse ✓</TabsTrigger>
+                )}
                 <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
               </TabsList>
 
@@ -208,47 +479,20 @@ export default function Home() {
                   claimingAge={currentScenario.claimingAge}
                   colaRate={currentScenario.colaRate}
                   onBirthDateChange={(date) =>
-                    setCurrentScenario({ ...currentScenario, birthDate: date })
+                    markDirty({ ...currentScenario, birthDate: date })
                   }
                   onBenefitAmountChange={(amount) =>
-                    setCurrentScenario({ ...currentScenario, benefitAmount: amount })
+                    markDirty({ ...currentScenario, benefitAmount: amount })
                   }
                   onClaimingAgeChange={(age) =>
-                    setCurrentScenario({ ...currentScenario, claimingAge: age })
+                    markDirty({ ...currentScenario, claimingAge: age })
                   }
+                  onReset={handleResetScenario}
                 />
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="includeSpouse"
-                    checked={currentScenario.includeSpouse}
-                    onChange={(e) => {
-                      const include = e.target.checked;
-                      setCurrentScenario({
-                        ...currentScenario,
-                        includeSpouse: include,
-                        spouseBirthDate: include
-                          ? currentScenario.spouseBirthDate || new Date(currentScenario.birthDate)
-                          : undefined,
-                        spouseBenefitAmount: include
-                          ? currentScenario.spouseBenefitAmount || currentScenario.benefitAmount * 0.5
-                          : undefined,
-                        spouseClaimingAge: include
-                          ? currentScenario.spouseClaimingAge || currentScenario.claimingAge
-                          : undefined,
-                      });
-                    }}
-                    className="rounded"
-                  />
-                  <label htmlFor="includeSpouse" className="text-sm font-medium cursor-pointer">
-                    Include spouse in calculations
-                  </label>
-                </div>
               </TabsContent>
 
               <TabsContent value="spouse" className="space-y-4">
-                {currentScenario.includeSpouse &&
+                {includeSpouseGlobally &&
                 currentScenario.spouseBirthDate &&
                 currentScenario.spouseBenefitAmount !== undefined &&
                 currentScenario.spouseClaimingAge !== undefined ? (
@@ -258,13 +502,13 @@ export default function Home() {
                     spouseClaimingAge={currentScenario.spouseClaimingAge}
                     partnerBenefitAmount={currentScenario.benefitAmount}
                     onBirthDateChange={(date) =>
-                      setCurrentScenario({ ...currentScenario, spouseBirthDate: date })
+                      markDirty({ ...currentScenario, spouseBirthDate: date })
                     }
                     onBenefitAmountChange={(amount) =>
-                      setCurrentScenario({ ...currentScenario, spouseBenefitAmount: amount })
+                      markDirty({ ...currentScenario, spouseBenefitAmount: amount })
                     }
                     onClaimingAgeChange={(age) =>
-                      setCurrentScenario({ ...currentScenario, spouseClaimingAge: age })
+                      markDirty({ ...currentScenario, spouseClaimingAge: age })
                     }
                   />
                 ) : (
@@ -272,18 +516,11 @@ export default function Home() {
                     <p className="text-muted-foreground mb-4">
                       Spousal benefits not enabled
                     </p>
-                    <Button
-                      onClick={() =>
-                        setCurrentScenario({
-                          ...currentScenario,
-                          includeSpouse: true,
-                          spouseBirthDate: new Date(currentScenario.birthDate),
-                          spouseBenefitAmount: currentScenario.benefitAmount * 0.5,
-                          spouseClaimingAge: currentScenario.claimingAge,
-                        })
-                      }
-                    >
-                      Enable Spousal Benefits
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Enable spouse in Settings to configure spousal benefits.
+                    </p>
+                    <Button onClick={() => setShowSettings(true)}>
+                      Open Settings
                     </Button>
                   </Card>
                 )}
@@ -296,50 +533,23 @@ export default function Home() {
                   colaRate={currentScenario.colaRate}
                   inflationRate={currentScenario.inflationRate}
                   onPresetChange={(preset) =>
-                    setCurrentScenario((prev) => ({
-                      ...prev,
+                    markDirty({
+                      ...currentScenario,
                       assumptionPreset: preset as AssumptionPreset | 'custom',
-                    }))
+                    })
                   }
                   onGrowthRateChange={(rate) =>
-                    setCurrentScenario((prev) => ({ ...prev, investmentGrowthRate: rate }))
+                    markDirty({ ...currentScenario, investmentGrowthRate: rate })
                   }
                   onColaRateChange={(rate) =>
-                    setCurrentScenario((prev) => ({ ...prev, colaRate: rate }))
+                    markDirty({ ...currentScenario, colaRate: rate })
                   }
                   onInflationRateChange={(rate) =>
-                    setCurrentScenario((prev) => ({ ...prev, inflationRate: rate }))
+                    markDirty({ ...currentScenario, inflationRate: rate })
                   }
                 />
               </TabsContent>
             </Tabs>
-
-            {/* Save Scenario */}
-            <Card className="p-4">
-              <div className="flex items-center gap-4">
-                <input
-                  type="text"
-                  value={currentScenario.name}
-                  onChange={(e) =>
-                    setCurrentScenario({ ...currentScenario, name: e.target.value })
-                  }
-                  className="flex-1 px-3 py-2 border rounded-md"
-                  placeholder="Scenario name..."
-                />
-                <Button
-                  onClick={handleSaveScenario}
-                  size="lg"
-                  disabled={!isValidScenario}
-                >
-                  💾 Save Scenario
-                </Button>
-              </div>
-              {!isValidScenario && (
-                <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                  Cannot save: Please fix validation errors above
-                </p>
-              )}
-            </Card>
           </div>
 
           {/* Right Column - Saved Scenarios */}
@@ -358,9 +568,18 @@ export default function Home() {
                       key={scenario.id}
                       scenario={scenario}
                       isSelected={selectedScenarios.includes(scenario.id)}
+                      isEditing={editingScenarioId === scenario.id}
                       onSelect={() => handleToggleScenarioSelection(scenario.id)}
-                      onEdit={() => setCurrentScenario(scenario)}
+                      onEdit={() => {
+                        setCurrentScenario(scenario);
+                        setEditingScenarioId(scenario.id);
+                        setIsDirty(false);
+                        setOriginalScenarioValues(scenario);
+                      }}
                       onDelete={() => deleteScenario(scenario.id)}
+                      onRename={(newName) =>
+                        handleRenameScenario(scenario.id, newName)
+                      }
                     />
                   ))}
                 </div>
@@ -369,6 +588,20 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Settings Dialog */}
+      <SettingsDialog
+        open={showSettings}
+        onOpenChange={setShowSettings}
+        birthDate={currentScenario.birthDate}
+        includeSpouse={includeSpouseGlobally}
+        spouseBirthDate={globalSpouseBirthDate}
+        onIndividualBirthdateChange={(date) =>
+          setCurrentScenario({ ...currentScenario, birthDate: date })
+        }
+        onIncludeSpouseChange={setIncludeSpouseGlobally}
+        onSpouseBirthdateChange={setGlobalSpouseBirthDate}
+      />
     </div>
   );
 }
