@@ -38,6 +38,24 @@ export function AssumptionsPanel({
   onColaRateChange,
   onInflationRateChange,
 }: AssumptionsPanelProps) {
+  // Check if current values match a preset
+  const matchesPreset = (presetKey: AssumptionPreset): boolean => {
+    const presetValues = ASSUMPTION_PRESETS[presetKey];
+    return (
+      presetValues.investmentGrowthRate === growthRate &&
+      presetValues.colaRate === colaRate &&
+      presetValues.inflationRate === inflationRate
+    );
+  };
+
+  // Determine which preset is actually active
+  const activePreset = (() => {
+    if (matchesPreset('conservative')) return 'conservative';
+    if (matchesPreset('moderate')) return 'moderate';
+    if (matchesPreset('historical')) return 'historical';
+    return 'custom';
+  })();
+
   const presets: Array<{
     key: AssumptionPreset;
     name: string;
@@ -87,7 +105,7 @@ export function AssumptionsPanel({
         </p>
 
         {/* Preset Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
           {presets.map((p) => (
             <button
               key={p.key}
@@ -95,7 +113,7 @@ export function AssumptionsPanel({
               className={`
                 relative p-4 rounded-lg border-2 transition-all text-left
                 ${
-                  preset === p.key
+                  activePreset === p.key
                     ? 'border-primary bg-primary/5 shadow-md'
                     : 'border-border hover:border-primary/50 hover:bg-accent'
                 }
@@ -116,16 +134,44 @@ export function AssumptionsPanel({
               </div>
             </button>
           ))}
+
+          {/* Custom Preset Card */}
+          <div
+            className={`
+              relative p-4 rounded-lg border-2 transition-all text-left
+              ${
+                activePreset === 'custom'
+                  ? 'border-primary bg-primary/5 shadow-md'
+                  : 'border-border bg-muted/20'
+              }
+            `}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 opacity-20 rounded-lg" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">⚙️</span>
+                <span className="font-semibold">Custom</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Your personalized assumptions</p>
+              {activePreset === 'custom' && (
+                <div className="mt-3 text-xs space-y-1 font-mono">
+                  <div>Growth: {growthRate}%</div>
+                  <div>COLA: {colaRate}%</div>
+                  <div>Inflation: {inflationRate}%</div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Custom Inputs */}
       <Card className="p-4 space-y-4">
         <div className="flex items-center justify-between mb-2">
-          <Label className="text-sm font-semibold">Custom Values</Label>
-          {preset === 'custom' && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-              Custom
+          <Label className="text-sm font-semibold">Adjust Values</Label>
+          {activePreset === 'custom' && (
+            <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded">
+              ⚙️ Custom
             </span>
           )}
         </div>

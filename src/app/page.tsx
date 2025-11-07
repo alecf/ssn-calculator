@@ -37,6 +37,9 @@ export default function Home() {
   // Selected scenarios for comparison
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
 
+  // Welcome message visibility
+  const [showWelcome, setShowWelcome] = useState(true);
+
   // Calculate current scenario
   const currentResults = useCalculations(currentScenario);
 
@@ -149,17 +152,38 @@ export default function Home() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Inputs */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Info Alert */}
-            <Alert>
+        {/* Welcome message - full width, dismissable */}
+        {showWelcome && (
+          <Alert className="mb-6">
+            <div className="flex items-center justify-between">
               <AlertDescription className="text-sm">
                 👋 <strong>Welcome!</strong> Configure your retirement scenario below,
                 then save it to compare different claiming strategies. The chart shows
                 cumulative benefits over your lifetime.
               </AlertDescription>
-            </Alert>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowWelcome(false)}
+                className="ml-4 h-6 w-6 p-0"
+              >
+                ✕
+              </Button>
+            </div>
+          </Alert>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Chart & Inputs */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Chart - Now at the top */}
+            <Card className="p-6">
+              <CumulativeBenefitsChart
+                data={chartData}
+                displayMode={currentScenario.displayMode}
+                breakevens={breakevens}
+              />
+            </Card>
 
             {/* Tabs for Individual/Spouse/Assumptions */}
             <Tabs defaultValue="individual" className="w-full">
@@ -176,6 +200,7 @@ export default function Home() {
                   birthDate={currentScenario.birthDate}
                   benefitAmount={currentScenario.benefitAmount}
                   claimingAge={currentScenario.claimingAge}
+                  colaRate={currentScenario.colaRate}
                   onBirthDateChange={(date) =>
                     setCurrentScenario({ ...currentScenario, birthDate: date })
                   }
@@ -308,15 +333,6 @@ export default function Home() {
                   Cannot save: Please fix validation errors above
                 </p>
               )}
-            </Card>
-
-            {/* Chart */}
-            <Card className="p-6">
-              <CumulativeBenefitsChart
-                data={chartData}
-                displayMode={currentScenario.displayMode}
-                breakevens={breakevens}
-              />
             </Card>
           </div>
 
