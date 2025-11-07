@@ -230,33 +230,65 @@ Add updates to the **"Updates & Revision History"** section with:
 - `test`: Adding tests
 - `chore`: Updating build tasks, package manager configs, etc.
 
+### Message Length Guidelines
+
+**Scale commit message length to match commit size:**
+
+- **Small, targeted fixes** (1-3 files, <50 lines changed)
+  - Keep message concise: 1-2 sentences in body
+  - Focus on what changed and why
+  - Example: One-line bug fix, typo correction, small refactor
+
+- **Medium changes** (3-5 files, 50-200 lines changed)
+  - Moderate detail: 1-2 short paragraphs
+  - Explain problem and solution briefly
+  - Example: Feature enhancement, validation addition
+
+- **Large features** (5+ files, 200+ lines changed)
+  - Comprehensive detail: Up to 4 paragraphs or lists
+  - Include context, implementation details, impact
+  - Example: New major feature, architectural change
+
+**Key principle**: Don't write a novel for a one-line fix, but do provide adequate context for complex changes.
+
 ### Examples
 
+**Small fix (concise):**
+```
+fix(calculator): correct FRA calculation for 1943 births
+
+Changed comparison from <= to < for edge case.
+```
+
+**Medium change (moderate detail):**
+```
+fix(validation): prevent paste errors in benefit amount input
+
+Add input sanitization to prevent users from accidentally pasting
+large values like $293000 instead of $2930. Parser now strips
+non-numeric characters and validates range.
+
+Fixes: #12
+```
+
+**Large feature (comprehensive):**
 ```
 feat(calculator): add spousal benefit calculations
 
 Implement logic to determine whether spouse receives own benefit
 or 50% of partner's benefit, whichever is higher.
 
+Changes:
+- Add SpouseInputs component with form fields
+- Implement calculateSpousalBenefit() function with SSA rules
+- Update chart to show combined household benefits
+- Add spousal benefit tab to main calculator
+
+The calculation handles early claiming reductions for spousal
+benefits separately from personal benefits, following official
+SSA guidelines.
+
 Refs: PRD.md section 3.3
-```
-
-```
-fix(validation): prevent paste errors in benefit amount input
-
-Add input sanitization to prevent users from accidentally pasting
-large values like $293000 instead of $2930.
-
-Fixes: #12
-```
-
-```
-docs(prd): update assumption presets based on user feedback
-
-Changed historical profile to use 7% growth instead of 6%
-to better match long-term S&P 500 returns.
-
-Updated: PRD.md v1.1
 ```
 
 ## Development Workflow
