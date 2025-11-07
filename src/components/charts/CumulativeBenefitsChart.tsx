@@ -176,7 +176,7 @@ export function CumulativeBenefitsChart({
           {/* Lines for each scenario */}
           {data.map((scenario, index) => (
             <Line
-              key={scenario.name}
+              key={`${scenario.name}-${index}`}
               type="monotone"
               dataKey={scenario.name}
               stroke={scenario.color || COLORS[index % COLORS.length]}
@@ -191,7 +191,7 @@ export function CumulativeBenefitsChart({
       {/* Legend for claiming ages */}
       <div className="flex flex-wrap gap-4 pt-2 border-t">
         {data.map((scenario, index) => (
-          <div key={scenario.name} className="flex items-center gap-2 text-sm">
+          <div key={`${scenario.name}-${index}`} className="flex items-center gap-2 text-sm">
             <div
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: scenario.color || COLORS[index % COLORS.length] }}
