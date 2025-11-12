@@ -31,6 +31,7 @@ import {
   loadIncludeSpouse,
   saveIncludeSpouse,
 } from '@/lib/storage/preferences';
+import { projectMaxBenefitAtFRA, calculateFRA } from '@/lib/calculations/ssaBenefits';
 import type { Scenario } from '@/types/scenario';
 import type { AssumptionPreset } from '@/constants/ssaRules';
 
@@ -202,8 +203,23 @@ export default function Home() {
   ];
 
   // Validate current scenario
-  const maxBenefit = getMaxBenefit();
-  const benefitFeedback = getBenefitAmountFeedback(currentScenario.benefitAmount, maxBenefit);
+  // Project the maximum benefit at the user's FRA, accounting for COLA increases
+  const projectedMaxBenefit = projectMaxBenefitAtFRA(
+    currentScenario.birthDate,
+    currentScenario.colaRate
+  );
+
+  // Calculate FRA year for display in feedback
+  const fra = calculateFRA(currentScenario.birthDate);
+  const fraAge = fra.years + fra.months / 12;
+  const birthYear = currentScenario.birthDate.getFullYear();
+  const fraYear = birthYear + Math.floor(fraAge);
+
+  const benefitFeedback = getBenefitAmountFeedback(
+    currentScenario.benefitAmount,
+    projectedMaxBenefit,
+    fraYear
+  );
   const today = new Date();
   const isFutureBirthDate = currentScenario.birthDate > today;
 

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
@@ -24,8 +25,8 @@ import {
   calculateEarlyReductionPercentage,
   calculateDelayedCreditPercentage,
   calculateBenefit,
+  projectMaxBenefitAtFRA,
 } from '@/lib/calculations/ssaBenefits';
-import { getMaxBenefit } from '@/constants/ssaRules';
 import { getBenefitAmountFeedback, getFeedbackVariant } from '@/lib/validation/feedback';
 
 interface IndividualInputsProps {
@@ -36,6 +37,7 @@ interface IndividualInputsProps {
   onBirthDateChange: (date: Date) => void;
   onBenefitAmountChange: (amount: number) => void;
   onClaimingAgeChange: (age: number) => void;
+  onReset?: () => void;
 }
 
 export function IndividualInputs({
@@ -46,17 +48,22 @@ export function IndividualInputs({
   onBirthDateChange,
   onBenefitAmountChange,
   onClaimingAgeChange,
+  onReset,
 }: IndividualInputsProps) {
   const fra = calculateFRA(birthDate);
   const fraAge = getFRAAsDecimal(fra);
-  const maxBenefit = getMaxBenefit();
-  const benefitPercent = Math.round((benefitAmount / maxBenefit) * 100);
-  const feedback = getBenefitAmountFeedback(benefitAmount, maxBenefit);
+  const projectedMaxBenefit = projectMaxBenefitAtFRA(birthDate, colaRate);
+  const benefitPercent = Math.round((benefitAmount / projectedMaxBenefit) * 100);
+
+  // Calculate FRA year for feedback display
+  const birthYear = birthDate.getFullYear();
+  const fraYear = birthYear + Math.floor(fraAge);
+
+  const feedback = getBenefitAmountFeedback(benefitAmount, projectedMaxBenefit, fraYear);
 
   // Calculate COLA-adjusted benefit at claiming age
   // The benefitAmount is at FRA, so we need to project it forward to claiming age
   const currentYear = new Date().getFullYear();
-  const fraYear = birthDate.getFullYear() + Math.floor(fraAge);
   const claimingYear = birthDate.getFullYear() + claimingAge;
   const yearsFromFRAToToday = currentYear - fraYear;
   const yearsFromTodayToClaiming = claimingYear - currentYear;
@@ -95,7 +102,7 @@ export function IndividualInputs({
 
   const handleBenefitPercentChange = (value: number[]) => {
     const percent = value[0];
-    const newAmount = Math.round((maxBenefit * percent) / 100);
+    const newAmount = Math.round((projectedMaxBenefit * percent) / 100);
     onBenefitAmountChange(newAmount);
   };
 
@@ -106,10 +113,18 @@ export function IndividualInputs({
 
   return (
     <Card className="p-6 space-y-6">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-2xl">👤</span>
-        <h3 className="text-lg font-semibold">Your Information</h3>
-      </div>
+      {/* Reset Button */}
+      {onReset && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReset}
+          >
+            ↻ Reset to defaults
+          </Button>
+        </div>
+      )}
 
       {/* Claiming Age Slider */}
       <div className="space-y-3">
@@ -186,7 +201,7 @@ export function IndividualInputs({
               onChange={handleBenefitDollarChange}
               className="pl-7"
               min={0}
-              max={maxBenefit * 1.25}
+              max={projectedMaxBenefit * 1.25}
             />
           </div>
         </div>
@@ -204,7 +219,7 @@ export function IndividualInputs({
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>0%</span>
-            <span className="font-semibold">{benefitPercent}% of max (${maxBenefit.toLocaleString()})</span>
+            <span className="font-semibold">{benefitPercent}% of max (${projectedMaxBenefit.toLocaleString()})</span>
             <span>100%</span>
           </div>
         </div>
@@ -234,39 +249,21 @@ export function IndividualInputs({
         )}
       </div>
 
-      {/* Birth Date */}
-      <div className="space-y-2">
-        <Label htmlFor="birthDate">Birth Date</Label>
-        <Input
-          id="birthDate"
-          type="date"
-          value={birthDate.toISOString().split('T')[0]}
-          onChange={handleBirthDateChange}
-          max={new Date().toISOString().split('T')[0]}
-          className={isFutureBirthDate || isTooYoung ? 'border-red-500' : ''}
-        />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Full Retirement Age:</span>
+      {/* Full Retirement Age Info */}
+      <div className="space-y-2 bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">Full Retirement Age</span>
           <Badge variant="outline" className="font-mono">
             {fra.years} years
             {fra.months > 0 && `, ${fra.months} months`}
           </Badge>
-          <span className="text-xs">
-            ({new Date(birthDate.getFullYear() + fra.years, birthDate.getMonth() + fra.months, birthDate.getDate()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})
-          </span>
         </div>
-
-        {isFutureBirthDate && (
-          <div className="text-xs text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/20 p-3 rounded-md">
-            ⚠️ Birth date cannot be in the future. Please enter a valid birth date.
-          </div>
-        )}
-
-        {!isFutureBirthDate && isTooYoung && (
-          <div className="text-xs text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md">
-            ⚠️ You must be at least 18 years old to use this calculator. Social Security benefits cannot be claimed until age 62.
-          </div>
-        )}
+        <p className="text-xs text-muted-foreground">
+          You'll reach full retirement age in {new Date(birthDate.getFullYear() + fra.years, birthDate.getMonth() + fra.months, birthDate.getDate()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          💡 Change your birth date in Settings (top right) if needed.
+        </p>
       </div>
     </Card>
   );

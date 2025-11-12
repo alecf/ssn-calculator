@@ -195,11 +195,16 @@ export function getInflationFeedback(rate: number): FeedbackResult {
 /**
  * Get qualitative feedback for benefit amount
  *
- * Validates against the maximum possible benefit.
+ * Validates against the maximum possible benefit at FRA.
+ *
+ * @param amount - The user's entered benefit amount
+ * @param maxBenefit - Maximum benefit projected at the user's FRA
+ * @param fraYear - Optional: The year the user reaches FRA (for display purposes)
  */
 export function getBenefitAmountFeedback(
   amount: number,
-  maxBenefit: number
+  maxBenefit: number,
+  fraYear?: number
 ): FeedbackResult {
   const percentOfMax = (amount / maxBenefit) * 100;
 
@@ -243,19 +248,21 @@ export function getBenefitAmountFeedback(
   }
 
   if (percentOfMax > 100 && percentOfMax <= 125) {
+    const yearText = fraYear ? ` in ${fraYear}` : '';
     return {
       level: 'warning',
       label: 'Above Maximum',
-      description: `This exceeds the 2025 maximum benefit of $${maxBenefit.toLocaleString()}/month. Double-check your numbers. This might be a typo.`,
+      description: `This exceeds the projected maximum benefit of $${maxBenefit.toLocaleString()}/month at your Full Retirement Age${yearText}. Double-check your numbers. This might be a typo.`,
       color: 'destructive',
     };
   }
 
   // percentOfMax > 125
+  const yearText = fraYear ? ` in ${fraYear}` : '';
   return {
     level: 'error',
     label: 'Invalid Amount',
-    description: `This is ${Math.round(percentOfMax)}% of the maximum possible benefit. This seems like an error. Did you paste incorrectly? The max benefit for 2025 is $${maxBenefit.toLocaleString()}/month.`,
+    description: `This is ${Math.round(percentOfMax)}% of the maximum possible benefit. This seems like an error. The max benefit projected at your Full Retirement Age${yearText} is $${maxBenefit.toLocaleString()}/month.`,
     color: 'destructive',
   };
 }

@@ -14,6 +14,7 @@ import {
   SPOUSAL_BENEFIT_RATE,
   MIN_CLAIMING_AGE,
   MAX_CLAIMING_AGE,
+  MAX_BENEFIT_BY_YEAR,
 } from '@/constants/ssaRules';
 import type { FRA, BenefitCalculation, SpousalBenefitResult } from '@/types/scenario';
 
@@ -38,6 +39,48 @@ export function calculateFRA(birthDate: Date): FRA {
 
   // Look up in the FRA table
   return FRA_TABLE[birthYear] || { years: 67, months: 0 };
+}
+
+/**
+ * Project the maximum Social Security benefit at a user's Full Retirement Age
+ *
+ * This accounts for COLA (Cost of Living Adjustment) increases from today
+ * until the user reaches their FRA.
+ *
+ * @param birthDate - The individual's birth date (to determine FRA)
+ * @param colaRate - Expected annual COLA rate (e.g., 0.025 for 2.5%)
+ * @returns Projected maximum monthly benefit at FRA
+ */
+export function projectMaxBenefitAtFRA(
+  birthDate: Date,
+  colaRate: number = 0.025
+): number {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+
+  // Get current maximum benefit
+  const currentMaxBenefit = MAX_BENEFIT_BY_YEAR[currentYear] || MAX_BENEFIT_BY_YEAR[2025];
+
+  // Calculate when user will reach FRA
+  const fra = calculateFRA(birthDate);
+  const fraAge = fra.years + fra.months / 12;
+
+  // Get user's birth year and calculate approximate FRA year
+  const birthYear = birthDate.getFullYear();
+  const fraYear = birthYear + Math.floor(fraAge);
+
+  // Calculate number of years until FRA
+  const yearsUntilFRA = fraYear - currentYear;
+
+  // If FRA is in the past or very soon, don't apply growth
+  if (yearsUntilFRA <= 0) {
+    return currentMaxBenefit;
+  }
+
+  // Project forward using compound COLA growth
+  const projectedMaxBenefit = currentMaxBenefit * Math.pow(1 + colaRate, yearsUntilFRA);
+
+  return Math.round(projectedMaxBenefit);
 }
 
 /**
