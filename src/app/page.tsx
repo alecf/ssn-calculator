@@ -369,6 +369,8 @@ export default function Home() {
 
   const handleResetScenario = () => {
     const newScenario = createDefaultScenario({ name: 'Current Scenario' });
+    // Preserve the user's birth date - only reset scenario parameters
+    newScenario.birthDate = currentScenario.birthDate;
     if (includeSpouseGlobally) {
       newScenario.includeSpouse = true;
       newScenario.spouseBirthDate = globalSpouseBirthDate;
