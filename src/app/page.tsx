@@ -586,21 +586,25 @@ export default function Home() {
                   growthRate={currentScenario.investmentGrowthRate}
                   colaRate={currentScenario.colaRate}
                   inflationRate={currentScenario.inflationRate}
-                  onPresetChange={(preset) =>
-                    markDirty({
-                      ...currentScenario,
+                  onPresetChange={(preset) => {
+                    setCurrentScenario((prev) => ({
+                      ...prev,
                       assumptionPreset: preset as AssumptionPreset | 'custom',
-                    })
-                  }
-                  onGrowthRateChange={(rate) =>
-                    markDirty({ ...currentScenario, investmentGrowthRate: rate })
-                  }
-                  onColaRateChange={(rate) =>
-                    markDirty({ ...currentScenario, colaRate: rate })
-                  }
-                  onInflationRateChange={(rate) =>
-                    markDirty({ ...currentScenario, inflationRate: rate })
-                  }
+                    }));
+                    setIsDirty(true);
+                  }}
+                  onGrowthRateChange={(rate) => {
+                    setCurrentScenario((prev) => ({ ...prev, investmentGrowthRate: rate }));
+                    setIsDirty(true);
+                  }}
+                  onColaRateChange={(rate) => {
+                    setCurrentScenario((prev) => ({ ...prev, colaRate: rate }));
+                    setIsDirty(true);
+                  }}
+                  onInflationRateChange={(rate) => {
+                    setCurrentScenario((prev) => ({ ...prev, inflationRate: rate }));
+                    setIsDirty(true);
+                  }}
                 />
               </TabsContent>
             </Tabs>
