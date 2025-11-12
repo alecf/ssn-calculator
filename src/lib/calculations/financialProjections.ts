@@ -29,30 +29,34 @@ export function projectBenefits(
   claimingAge: number,
   endAge: number,
   colaRate: number,
-  birthDate: Date
+  birthDate: Date,
+  inflationRate: number = colaRate  // Default: assume inflation = COLA
 ): YearlyBenefit[] {
   const benefits: YearlyBenefit[] = [];
   const currentYear = new Date().getFullYear();
   const birthYear = birthDate.getFullYear();
 
-  let monthlyBenefit = startingBenefit;
-
   for (let age = Math.ceil(claimingAge); age <= endAge; age++) {
     const year = birthYear + age;
-    const isFirstYear = age === Math.ceil(claimingAge);
+    const yearsFromClaiming = age - Math.ceil(claimingAge);
 
-    // Apply COLA at the beginning of each year (except first year)
-    if (!isFirstYear) {
-      monthlyBenefit *= 1 + colaRate / 100;
-    }
+    // Benefit in today's dollars grows by the net of (COLA - inflation)
+    // COLA increases the nominal benefit, inflation decreases purchasing power
+    // Net effect: benefit grows if COLA > inflation, shrinks if COLA < inflation
+    const realGrowthRate = colaRate - inflationRate;
+    const monthlyBenefitTodaysDollars = startingBenefit * Math.pow(1 + realGrowthRate / 100, yearsFromClaiming);
+
+    // Nominal benefit grows by COLA rate from the starting benefit
+    // This is what Social Security actually pays out
+    const nominalMonthlyBenefit = startingBenefit * Math.pow(1 + colaRate / 100, yearsFromClaiming);
 
     benefits.push({
       age,
       year,
-      monthlyBenefit,
-      annualBenefit: monthlyBenefit * 12,
-      colaAdjusted: monthlyBenefit,
-      inflationAdjusted: monthlyBenefit, // Will be adjusted separately
+      monthlyBenefit: nominalMonthlyBenefit,  // Nominal dollars (with COLA growth)
+      annualBenefit: nominalMonthlyBenefit * 12,
+      colaAdjusted: nominalMonthlyBenefit,    // Same as monthlyBenefit
+      inflationAdjusted: monthlyBenefitTodaysDollars, // Today's dollars (grows/shrinks by real growth rate)
     });
   }
 
@@ -164,19 +168,21 @@ export function projectScenario(scenario: Scenario): {
   cumulativeBenefits: CumulativeBenefit[];
 } {
   // Calculate individual benefit
+  // benefitAmount is in today's dollars, and calculateBenefit returns it in today's dollars too
   const individualBenefit = calculateBenefit(
     scenario.benefitAmount,
     scenario.birthDate,
     scenario.claimingAge
   );
 
-  // Project individual benefits
+  // Project individual benefits (all calculations in today's dollars)
   let yearlyBenefits = projectBenefits(
     individualBenefit.monthlyBenefit,
     scenario.claimingAge,
     scenario.lifetimeAge,
     scenario.colaRate,
-    scenario.birthDate
+    scenario.birthDate,
+    scenario.inflationRate
   );
 
   // Add spousal benefits if applicable
@@ -193,13 +199,14 @@ export function projectScenario(scenario: Scenario): {
       scenario.spouseClaimingAge
     );
 
-    // Project spousal benefits
+    // Project spousal benefits (all calculations in today's dollars)
     const spouseBenefits = projectBenefits(
       spousalBenefit.monthlyBenefit,
       scenario.spouseClaimingAge,
       scenario.lifetimeAge,
       scenario.colaRate,
-      scenario.spouseBirthDate
+      scenario.spouseBirthDate,
+      scenario.inflationRate
     );
 
     // Merge individual and spousal benefits by age
@@ -216,20 +223,9 @@ export function projectScenario(scenario: Scenario): {
     });
   }
 
-  // Apply inflation adjustment based on display mode
-  if (scenario.displayMode === 'today-dollars') {
-    yearlyBenefits = applyInflation(
-      yearlyBenefits,
-      scenario.inflationRate,
-      new Date().getFullYear()
-    );
-  }
-
-  // Calculate cumulative benefits
-  const cumulativeBenefits = calculateCumulativeBenefits(
-    yearlyBenefits,
-    scenario.displayMode === 'today-dollars'
-  );
+  // All values are now in today's dollars (inflationAdjusted) and nominal dollars (monthlyBenefit)
+  // Calculate cumulative benefits (always include both nominal and adjusted)
+  const cumulativeBenefits = calculateCumulativeBenefits(yearlyBenefits, true);
 
   // Add household cumulative if spouse is included
   if (scenario.includeSpouse) {

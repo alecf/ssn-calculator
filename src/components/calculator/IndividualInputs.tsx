@@ -65,19 +65,18 @@ export function IndividualInputs({
 
   const feedback = getBenefitAmountFeedback(benefitAmount, projectedMaxBenefit, fraYear);
 
-  // Calculate COLA-adjusted benefit at claiming age
-  // The benefitAmount is at FRA, so we need to project it forward to claiming age
-  const currentYear = new Date().getFullYear();
-  const claimingYear = birthDate.getFullYear() + claimingAge;
-  const yearsFromFRAToToday = currentYear - fraYear;
-  const yearsFromTodayToClaiming = claimingYear - currentYear;
+  // The "Projected monthly benefit" is what they'd get at their claiming age if they got 100% of max
+  // This is the projected max (at FRA in today's $) with SSA adjustment applied for claiming age
+  const maxBenefitCalc = calculateBenefit(projectedMaxBenefit, birthDate, claimingAge);
+  const projectedMonthlyBenefit = maxBenefitCalc.monthlyBenefit;
 
-  // Apply COLA from today to claiming year
-  const colaAdjustedBenefit = benefitAmount * Math.pow(1 + colaRate / 100, yearsFromTodayToClaiming);
+  // The "Expected monthly benefit" is their actual expected benefit (after percentage is applied)
+  // This is the benefit amount with SSA adjustment applied for claiming age
+  const benefitCalc = calculateBenefit(benefitAmount, birthDate, claimingAge);
+  const expectedMonthlyBenefit = benefitCalc.monthlyBenefit;
 
-  // Then apply SSA reduction/credit based on claiming age vs FRA
-  const benefitCalc = calculateBenefit(colaAdjustedBenefit, birthDate, claimingAge);
-  const displayedMonthlyBenefit = benefitCalc.monthlyBenefit;
+  // For backwards compatibility with older code that might reference this
+  const displayedMonthlyBenefit = expectedMonthlyBenefit;
 
   const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = new Date(e.target.value);
@@ -135,12 +134,8 @@ export function IndividualInputs({
       <div className="space-y-3">
         <Label>When will you start claiming benefits?</Label>
         <div className="text-sm text-muted-foreground">
-          Projected monthly benefit: <span className="font-semibold text-foreground">${Math.round(displayedMonthlyBenefit).toLocaleString()}</span>
-          {yearsFromTodayToClaiming !== 0 && (
-            <span className="text-xs ml-2">
-              (nominal dollars in {claimingYear})
-            </span>
-          )}
+          Projected monthly benefit: <span className="font-semibold text-foreground">${Math.round(projectedMonthlyBenefit).toLocaleString()}</span>
+          <span className="text-xs ml-2">(today's dollars)</span>
         </div>
 
         <div className="relative py-8">
@@ -191,18 +186,18 @@ export function IndividualInputs({
 
       {/* Benefit Amount */}
       <div className="space-y-3">
-        <Label>Expected Monthly Benefit at FRA <span className="text-xs text-muted-foreground">(in today's dollars)</span></Label>
+        <Label>Expected Monthly Benefit at Retirement <span className="text-xs text-muted-foreground">(in today's dollars)</span></Label>
 
         {/* Dollar Input */}
         <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">Dollar Amount</div>
+          <div className="text-xs text-muted-foreground">Base Benefit Amount (before claiming age adjustment)</div>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
               $
             </span>
             <Input
               type="number"
-              value={benefitAmount}
+              value={Math.round(benefitAmount)}
               onChange={handleBenefitDollarChange}
               className="pl-7"
               min={0}
@@ -231,7 +226,7 @@ export function IndividualInputs({
 
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">
-            ${benefitAmount.toLocaleString()}/month = {desiredPercentage}% of projected maximum
+            ${Math.round(expectedMonthlyBenefit).toLocaleString()}/month = {desiredPercentage}% of projected maximum
           </span>
           <TooltipProvider>
             <Tooltip>

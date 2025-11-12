@@ -431,27 +431,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Display Mode Selector */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                <span className="text-xs font-semibold text-muted-foreground">Display:</span>
-                <Button
-                  variant={globalDisplayMode === 'today-dollars' ? 'default' : 'ghost'}
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={() => setGlobalDisplayMode('today-dollars')}
-                >
-                  Today's $
-                </Button>
-                <Button
-                  variant={globalDisplayMode === 'future-dollars' ? 'default' : 'ghost'}
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={() => setGlobalDisplayMode('future-dollars')}
-                >
-                  Future $
-                </Button>
-              </div>
-
               <Button
                 variant="outline"
                 size="sm"
@@ -495,6 +474,7 @@ export default function Home() {
               <CumulativeBenefitsChart
                 data={chartData}
                 displayMode={globalDisplayMode}
+                onDisplayModeChange={setGlobalDisplayMode}
                 currentAge={currentAge}
                 breakevens={breakevens}
               />
@@ -637,25 +617,29 @@ export default function Home() {
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {scenarios.map((scenario) => (
-                    <ScenarioCard
-                      key={scenario.id}
-                      scenario={scenario}
-                      isSelected={selectedScenarios.includes(scenario.id)}
-                      isEditing={editingScenarioId === scenario.id}
-                      onSelect={() => handleToggleScenarioSelection(scenario.id)}
-                      onEdit={() => {
-                        setCurrentScenario(scenario);
-                        setEditingScenarioId(scenario.id);
-                        setIsDirty(false);
-                        setOriginalScenarioValues(scenario);
-                      }}
-                      onDelete={() => deleteScenario(scenario.id)}
-                      onRename={(newName) =>
-                        handleRenameScenario(scenario.id, newName)
-                      }
-                    />
-                  ))}
+                  {scenarios.map((scenario) => {
+                    const scenarioResult = selectedResults.find(r => r.scenario.id === scenario.id);
+                    return (
+                      <ScenarioCard
+                        key={scenario.id}
+                        scenario={scenario}
+                        isSelected={selectedScenarios.includes(scenario.id)}
+                        isEditing={editingScenarioId === scenario.id}
+                        cumulativeBenefits={scenarioResult?.cumulativeBenefits}
+                        onSelect={() => handleToggleScenarioSelection(scenario.id)}
+                        onEdit={() => {
+                          setCurrentScenario(scenario);
+                          setEditingScenarioId(scenario.id);
+                          setIsDirty(false);
+                          setOriginalScenarioValues(scenario);
+                        }}
+                        onDelete={() => deleteScenario(scenario.id)}
+                        onRename={(newName) =>
+                          handleRenameScenario(scenario.id, newName)
+                        }
+                      />
+                    );
+                  })}
                 </div>
               )}
             </Card>

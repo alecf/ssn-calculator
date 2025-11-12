@@ -47,9 +47,21 @@ export function ScenarioCard({
     scenario.claimingAge
   );
 
-  const lifetimeTotal = cumulativeBenefits
+  // Always show in today's dollars for the individual UI
+  // The benefitCalc.monthlyBenefit is already in today's dollars (it's the reduction applied to today's $ amount)
+  const displayedMonthlyBenefit = benefitCalc.monthlyBenefit;
+
+  let displayedLifetimeTotal = cumulativeBenefits
     ? getTotalLifetimeBenefit(cumulativeBenefits, scenario.lifetimeAge)
     : 0;
+
+  // Use the inflation-adjusted cumulative total (which is in today's dollars)
+  if (cumulativeBenefits && cumulativeBenefits.length > 0) {
+    const lastBenefit = cumulativeBenefits[cumulativeBenefits.length - 1];
+    displayedLifetimeTotal = lastBenefit.cumulativeAdjusted ?? displayedLifetimeTotal;
+  }
+
+  const lifetimeTotal = displayedLifetimeTotal;
 
   const getClaimingDescription = () => {
     const fraAge = benefitCalc.fra.years + benefitCalc.fra.months / 12;
@@ -133,9 +145,9 @@ export function ScenarioCard({
             <div className="text-2xl font-bold">{scenario.claimingAge}</div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">First Year</div>
+            <div className="text-xs text-muted-foreground">First Year (Today's $)</div>
             <div className="text-lg font-semibold">
-              ${Math.round(benefitCalc.monthlyBenefit).toLocaleString()}
+              ${Math.round(displayedMonthlyBenefit).toLocaleString()}
               <span className="text-xs text-muted-foreground">/mo</span>
             </div>
           </div>
@@ -145,7 +157,7 @@ export function ScenarioCard({
         {lifetimeTotal > 0 && (
           <div className="pt-2 border-t">
             <div className="text-xs text-muted-foreground mb-1">
-              Total by age {scenario.lifetimeAge}
+              Total by age {scenario.lifetimeAge} (Today's $)
             </div>
             <div className="text-xl font-bold text-primary">
               ${Math.round(lifetimeTotal).toLocaleString()}

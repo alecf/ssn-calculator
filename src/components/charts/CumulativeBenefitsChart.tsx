@@ -19,6 +19,7 @@ import {
   ReferenceLine,
   TooltipProps,
 } from 'recharts';
+import { Button } from '@/components/ui/button';
 import type { CumulativeBenefit, YearlyBenefit } from '@/types/scenario';
 
 interface CumulativeBenefitsChartProps {
@@ -30,6 +31,7 @@ interface CumulativeBenefitsChartProps {
     claimingAge: number;
   }>;
   displayMode: 'today-dollars' | 'future-dollars';
+  onDisplayModeChange: (mode: 'today-dollars' | 'future-dollars') => void;
   currentAge?: number;
   breakevens?: Array<{
     age: number;
@@ -130,6 +132,7 @@ const COLORS = [
 export function CumulativeBenefitsChart({
   data,
   displayMode,
+  onDisplayModeChange,
   currentAge,
   breakevens = [],
 }: CumulativeBenefitsChartProps) {
@@ -189,12 +192,32 @@ export function CumulativeBenefitsChart({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Cumulative Benefits Over Time</h3>
           <p className="text-sm text-muted-foreground">
             {displayMode === 'today-dollars' ? "Today's Dollars" : 'Future Dollars'}
           </p>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+          <span className="text-xs font-semibold text-muted-foreground">Display:</span>
+          <Button
+            variant={displayMode === 'today-dollars' ? 'default' : 'ghost'}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => onDisplayModeChange('today-dollars')}
+          >
+            Today's $
+          </Button>
+          <Button
+            variant={displayMode === 'future-dollars' ? 'default' : 'ghost'}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => onDisplayModeChange('future-dollars')}
+          >
+            Future $
+          </Button>
         </div>
 
         {breakevens.length > 0 && (
