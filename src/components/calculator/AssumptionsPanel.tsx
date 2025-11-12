@@ -113,7 +113,7 @@ export function AssumptionsPanel({
               key={p.key}
               onClick={() => handlePresetClick(p.key)}
               className={`
-                relative p-4 rounded-lg border-2 transition-all text-left
+                relative p-4 rounded-lg border-2 transition-all text-left cursor-pointer
                 ${
                   activePreset === p.key
                     ? 'border-primary bg-primary/5 shadow-md'
@@ -121,7 +121,7 @@ export function AssumptionsPanel({
                 }
               `}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${p.color} opacity-20 rounded-lg`} />
+              <div className={`absolute inset-0 bg-gradient-to-br ${p.color} opacity-20 rounded-lg pointer-events-none`} />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-2xl">{p.emoji}</span>
