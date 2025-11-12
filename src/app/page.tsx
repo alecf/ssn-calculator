@@ -75,6 +75,9 @@ export default function Home() {
   );
   const [includeSpouseGlobally, setIncludeSpouseGlobally] = useState(false);
 
+  // Clear all scenarios confirmation
+  const [showClearConfirmation, setShowClearConfirmation] = useState(false);
+
   // Load birthdate preferences from storage on mount
   useEffect(() => {
     const loadPreferences = async () => {
@@ -383,6 +386,21 @@ export default function Home() {
     setOriginalScenarioValues(null);
   };
 
+  const handleClearAllScenarios = async () => {
+    try {
+      // Delete all scenarios
+      for (const scenario of scenarios) {
+        await deleteScenario(scenario.id);
+      }
+      // Clear selection
+      setSelectedScenarios([]);
+      // Close confirmation
+      setShowClearConfirmation(false);
+    } catch (error) {
+      console.error('Failed to clear scenarios:', error);
+    }
+  };
+
   // Mark as dirty when any field changes
   const markDirty = (updatedScenario: Scenario) => {
     setCurrentScenario(updatedScenario);
@@ -615,7 +633,38 @@ export default function Home() {
           {/* Right Column - Saved Scenarios */}
           <div className="space-y-4">
             <Card className="p-4">
-              <h2 className="font-semibold mb-4">Saved Scenarios</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold">Saved Scenarios</h2>
+                {scenarios.length > 0 && (
+                  !showClearConfirmation ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowClearConfirmation(true)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      Clear All
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleClearAllScenarios}
+                      >
+                        Confirm
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowClearConfirmation(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )
+                )}
+              </div>
               {scenarios.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   No saved scenarios yet.<br />
