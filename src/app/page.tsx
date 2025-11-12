@@ -496,11 +496,11 @@ export default function Home() {
             </Card>
 
             {/* Save Buttons */}
-            <Card className="p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+            <Card className="p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={handleSave}
-                  size="lg"
+                  size="sm"
                   disabled={!isValidScenario || !editingScenarioId}
                   variant={editingScenarioId ? 'default' : 'outline'}
                 >
@@ -508,7 +508,7 @@ export default function Home() {
                 </Button>
                 <Button
                   onClick={handleSaveAsNew}
-                  size="lg"
+                  size="sm"
                   disabled={!isValidScenario}
                   variant="default"
                 >
@@ -540,7 +540,7 @@ export default function Home() {
                 <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="individual" className="space-y-4">
+              <TabsContent value="individual" className="space-y-0">
                 <IndividualInputs
                   birthDate={currentScenario.birthDate}
                   benefitAmount={expectedBenefit}
@@ -595,7 +595,7 @@ export default function Home() {
                 )}
               </TabsContent>
 
-              <TabsContent value="assumptions" className="space-y-4">
+              <TabsContent value="assumptions" className="space-y-0">
                 <AssumptionsPanel
                   preset={currentScenario.assumptionPreset}
                   growthRate={currentScenario.investmentGrowthRate}

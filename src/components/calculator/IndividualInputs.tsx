@@ -116,29 +116,16 @@ export function IndividualInputs({
   };
 
   return (
-    <Card className="p-6 space-y-6">
-      {/* Reset Button */}
-      {onReset && (
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onReset}
-          >
-            ↻ Reset to defaults
-          </Button>
-        </div>
-      )}
-
+    <Card className="p-4 space-y-4">
       {/* Claiming Age Slider */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <Label>When will you start claiming benefits?</Label>
         <div className="text-sm text-muted-foreground">
           Projected monthly benefit: <span className="font-semibold text-foreground">${Math.round(projectedMonthlyBenefit).toLocaleString()}</span>
           <span className="text-xs ml-2">(today's dollars)</span>
         </div>
 
-        <div className="relative py-8">
+        <div className="relative py-4">
           {/* FRA Indicator */}
           <div
             className="absolute top-0 w-0.5 h-6 bg-primary/40"
@@ -157,7 +144,7 @@ export function IndividualInputs({
             min={62}
             max={70}
             step={1}
-            className="py-4"
+            className="py-2"
           />
 
           <div className="flex justify-between text-xs text-muted-foreground mt-2">
@@ -185,11 +172,11 @@ export function IndividualInputs({
       </div>
 
       {/* Benefit Amount */}
-      <div className="space-y-3">
-        <Label>Expected Monthly Benefit at Retirement <span className="text-xs text-muted-foreground">(in today's dollars)</span></Label>
+      <div className="space-y-2">
+        <Label className="text-sm">Expected Monthly Benefit at Retirement <span className="text-xs text-muted-foreground">(in today's dollars)</span></Label>
 
         {/* Dollar Input */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="text-xs text-muted-foreground">Base Benefit Amount (before claiming age adjustment)</div>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -207,7 +194,7 @@ export function IndividualInputs({
         </div>
 
         {/* Percent Slider */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="text-xs text-muted-foreground">Percentage of Maximum Benefit</div>
           <Slider
             value={[desiredPercentage]}
@@ -215,7 +202,7 @@ export function IndividualInputs({
             min={0}
             max={100}
             step={1}
-            className="py-4"
+            className="py-2"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>0%</span>
@@ -250,10 +237,10 @@ export function IndividualInputs({
       </div>
 
       {/* Full Retirement Age Info */}
-      <div className="space-y-2 bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
+      <div className="space-y-1 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Full Retirement Age</span>
-          <Badge variant="outline" className="font-mono">
+          <span className="text-xs font-semibold">Full Retirement Age</span>
+          <Badge variant="outline" className="font-mono text-xs py-0 px-2">
             {fra.years} years
             {fra.months > 0 && `, ${fra.months} months`}
           </Badge>
