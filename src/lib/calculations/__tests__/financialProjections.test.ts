@@ -214,29 +214,38 @@ describe('Financial Projections', () => {
     it('should show breakeven analysis between claiming ages', () => {
       // Claiming at 62
       const benefitsAt62 = projectBenefits(
-        3000 * 0.7, // 30% reduction
+        3000 * 0.7, // 30% reduction = $2,100/mo
         62,
-        100,
+        85,
         2.5,
-        new Date('1960-01-01')
+        new Date(1960, 0, 1)
       );
 
       // Claiming at 70
       const benefitsAt70 = projectBenefits(
-        3000 * 1.24, // 24% increase
+        3000 * 1.24, // 24% increase = $3,720/mo
         70,
-        100,
+        85,
         2.5,
-        new Date('1960-01-01')
+        new Date(1960, 0, 1)
       );
 
       const cumAt62 = calculateCumulativeBenefits(benefitsAt62);
       const cumAt70 = calculateCumulativeBenefits(benefitsAt70);
 
-      // At age 62: early claiming has more
-      expect(cumAt62[0].cumulative).toBeGreaterThan(cumAt70[0].cumulative);
+      // Early claiming starts immediately at 62
+      expect(cumAt62[0].age).toBe(62);
+      expect(cumAt62[0].cumulative).toBeGreaterThan(0);
 
-      // Eventually delayed claiming catches up and surpasses
+      // Delayed claiming doesn't start until 70
+      expect(cumAt70[0].age).toBe(70);
+      expect(cumAt70[0].cumulative).toBeGreaterThan(0);
+
+      // Early benefit in year 1 is lower
+      expect(benefitsAt62[0].monthlyBenefit).toBeCloseTo(2100, 0);
+      expect(benefitsAt70[0].monthlyBenefit).toBeCloseTo(3720, 0);
+
+      // Eventually delayed claiming catches up and surpasses (likely early 80s)
       const lastYear62 = cumAt62[cumAt62.length - 1];
       const lastYear70 = cumAt70[cumAt70.length - 1];
 

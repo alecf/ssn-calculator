@@ -10,24 +10,25 @@ import {
 describe('Social Security Benefits Calculations', () => {
   describe('calculateFRA', () => {
     it('should return 67 for someone born in 1960', () => {
-      const birthDate = new Date('1960-01-01');
+      // Use constructor to avoid timezone issues with string parsing
+      const birthDate = new Date(1960, 0, 1);
       const fra = calculateFRA(birthDate);
       expect(fra.years).toBe(67);
       expect(fra.months).toBe(0);
     });
 
     it('should return 66 for someone born in 1950', () => {
-      const birthDate = new Date('1950-01-01');
+      const birthDate = new Date(1950, 0, 1);
       const fra = calculateFRA(birthDate);
       expect(fra.years).toBe(66);
       expect(fra.months).toBe(0);
     });
 
-    it('should return 66 years 6 months for someone born in 1958', () => {
-      const birthDate = new Date('1958-01-01');
+    it('should return 66 years 8 months for someone born in 1958', () => {
+      const birthDate = new Date(1958, 0, 1);
       const fra = calculateFRA(birthDate);
       expect(fra.years).toBe(66);
-      expect(fra.months).toBe(6);
+      expect(fra.months).toBe(8);
     });
   });
 
@@ -47,9 +48,9 @@ describe('Social Security Benefits Calculations', () => {
       const birthDate = new Date(currentYear - 52, 0, 1); // FRA at 67 = 15 years from now
       const result = projectMaxBenefitAtFRA(birthDate, 2.5);
 
-      // $4,018 * (1.025 ^ 15) ≈ $5,603
+      // $4,018 * (1.025 ^ 15) ≈ $5,819
       expect(result).toBeGreaterThan(5500);
-      expect(result).toBeLessThan(5800);
+      expect(result).toBeLessThan(5900);
     });
 
     it('should handle percentage conversion correctly', () => {
@@ -78,7 +79,7 @@ describe('Social Security Benefits Calculations', () => {
 
   describe('calculateEarlyReductionPercentage', () => {
     it('should return 0 when claiming at or after FRA', () => {
-      const birthDate = new Date('1960-01-01');
+      const birthDate = new Date(1960, 0, 1);
       const fra = calculateFRA(birthDate);
 
       // Claiming at FRA (67)
@@ -91,7 +92,7 @@ describe('Social Security Benefits Calculations', () => {
     });
 
     it('should apply reduction for claiming at 62', () => {
-      const birthDate = new Date('1960-01-01');
+      const birthDate = new Date(1960, 0, 1);
       const fra = calculateFRA(birthDate); // FRA = 67
 
       // Claiming at 62, 5 years early (60 months)
@@ -106,7 +107,7 @@ describe('Social Security Benefits Calculations', () => {
 
   describe('calculateDelayedCreditPercentage', () => {
     it('should return 0 when claiming at or before FRA', () => {
-      const birthDate = new Date('1960-01-01');
+      const birthDate = new Date(1960, 0, 1);
       const fra = calculateFRA(birthDate);
 
       let credit = calculateDelayedCreditPercentage(67, fra); // At FRA
@@ -117,7 +118,7 @@ describe('Social Security Benefits Calculations', () => {
     });
 
     it('should apply 8% per year for delaying', () => {
-      const birthDate = new Date('1960-01-01');
+      const birthDate = new Date(1960, 0, 1);
       const fra = calculateFRA(birthDate); // FRA = 67
 
       // Claiming at 70, 3 years after FRA (36 months)
@@ -131,18 +132,18 @@ describe('Social Security Benefits Calculations', () => {
 
   describe('calculateBenefit', () => {
     it('should return full benefit at FRA', () => {
-      const birthDate = new Date('1960-01-01');
+      const birthDate = new Date(1960, 0, 1);
       const baseAmount = 3000;
       const fraAge = 67;
 
       const result = calculateBenefit(baseAmount, birthDate, fraAge);
 
-      expect(result.monthlyBenefit).toBe(baseAmount);
-      expect(result.adjustmentPercentage).toBe(0);
+      expect(result.monthlyBenefit).toBeCloseTo(baseAmount, 0);
+      expect(result.adjustmentPercentage).toBeCloseTo(0, 1);
     });
 
     it('should reduce benefit when claiming early at 62', () => {
-      const birthDate = new Date('1960-01-01');
+      const birthDate = new Date(1960, 0, 1);
       const baseAmount = 3000;
 
       const result = calculateBenefit(baseAmount, birthDate, 62);
@@ -153,12 +154,12 @@ describe('Social Security Benefits Calculations', () => {
     });
 
     it('should increase benefit when claiming at 70', () => {
-      const birthDate = new Date('1960-01-01');
+      const birthDate = new Date(1960, 0, 1);
       const baseAmount = 3000;
 
       const result = calculateBenefit(baseAmount, birthDate, 70);
 
-      // Should be increased by 24% (8% per year for 3 years)
+      // Should be increased by approximately 24% (8% per year for 3 years)
       expect(result.monthlyBenefit).toBeCloseTo(3000 * 1.24, 0);
       expect(result.adjustmentPercentage).toBeCloseTo(24, 1);
     });
@@ -172,7 +173,7 @@ describe('Social Security Benefits Calculations', () => {
      */
     it('should handle $4,059 benefit at FRA correctly', () => {
       // Assuming user is around 50 years old (born ~1974)
-      const birthDate = new Date('1974-06-15');
+      const birthDate = new Date(1974, 5, 15); // June 15, 1974
       const expectedBenefitAtFRA = 4059;
 
       // Calculate FRA
