@@ -6,9 +6,11 @@
 
 'use client';
 
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import type { Scenario } from '@/types/scenario';
 import { calculateBenefit } from '@/lib/calculations/ssaBenefits';
 import { getTotalLifetimeBenefit } from '@/lib/calculations/financialProjections';
@@ -18,19 +20,26 @@ interface ScenarioCardProps {
   scenario: Scenario;
   cumulativeBenefits?: CumulativeBenefit[];
   isSelected?: boolean;
+  isEditing?: boolean;
   onSelect?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onRename?: (newName: string) => void;
 }
 
 export function ScenarioCard({
   scenario,
   cumulativeBenefits,
   isSelected = false,
+  isEditing = false,
   onSelect,
   onEdit,
   onDelete,
+  onRename,
 }: ScenarioCardProps) {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(scenario.name);
+
   // Calculate first year benefit
   const benefitCalc = calculateBenefit(
     scenario.benefitAmount,
@@ -52,12 +61,30 @@ export function ScenarioCard({
     return 'At full retirement age';
   };
 
+  const handleSaveName = () => {
+    if (editedName.trim() && editedName !== scenario.name) {
+      onRename?.(editedName.trim());
+    }
+    setIsEditingName(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveName();
+    } else if (e.key === 'Escape') {
+      setIsEditingName(false);
+      setEditedName(scenario.name);
+    }
+  };
+
   return (
     <Card
       className={`p-4 transition-all cursor-pointer ${
-        isSelected
-          ? 'ring-2 ring-primary shadow-lg'
-          : 'hover:shadow-md hover:border-primary/50'
+        isEditing
+          ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg'
+          : isSelected
+            ? 'ring-2 ring-primary shadow-lg'
+            : 'hover:shadow-md hover:border-primary/50'
       }`}
       onClick={onSelect}
     >
@@ -65,7 +92,29 @@ export function ScenarioCard({
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <h3 className="font-semibold text-lg">{scenario.name}</h3>
+            {isEditingName ? (
+              <Input
+                autoFocus
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={handleSaveName}
+                onKeyDown={handleKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                className="font-semibold text-lg h-8 mb-2"
+                placeholder="Scenario name..."
+              />
+            ) : (
+              <h3
+                className="font-semibold text-lg cursor-text hover:text-primary hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditingName(true);
+                  setEditedName(scenario.name);
+                }}
+              >
+                {scenario.name}
+              </h3>
+            )}
             <p className="text-sm text-muted-foreground">
               {getClaimingDescription()}
             </p>

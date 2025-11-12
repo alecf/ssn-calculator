@@ -38,7 +38,14 @@ interface CumulativeBenefitsChartProps {
   }>;
 }
 
-interface CustomTooltipProps extends TooltipProps<number, string> {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>;
+  label?: number;
   scenarioData: Array<{
     name: string;
     yearlyBenefits: YearlyBenefit[];

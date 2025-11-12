@@ -52,19 +52,23 @@ export function createDefaultScenario(
 }
 
 /**
- * Get suggested scenario names based on claiming age
+ * Get suggested scenario names based on claiming age and assumptions
  */
-export function getSuggestedScenarioName(claimingAge: number, includeSpouse: boolean): string {
-  const baseNames: Record<number, string> = {
-    62: 'Claim Early (62)',
-    65: 'Claim at 65',
-    67: 'Claim at FRA (67)',
-    70: 'Maximize Benefits (70)',
-  };
+export function getSuggestedScenarioName(
+  claimingAge: number,
+  assumptionPreset: 'conservative' | 'moderate' | 'historical' | 'custom'
+): string {
+  const ageLabel = claimingAge === 62 ? 'Early (62)' : claimingAge === 70 ? 'Max (70)' : `Age ${claimingAge}`;
+  const presetLabel =
+    assumptionPreset === 'conservative'
+      ? 'Conservative'
+      : assumptionPreset === 'moderate'
+        ? 'Moderate'
+        : assumptionPreset === 'historical'
+          ? 'Historical'
+          : 'Custom';
 
-  const baseName = baseNames[claimingAge] || `Claim at ${claimingAge}`;
-
-  return includeSpouse ? `${baseName} - Joint` : baseName;
+  return `Retire at ${ageLabel} with ${presetLabel} assumptions`;
 }
 
 /**

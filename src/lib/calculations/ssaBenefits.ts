@@ -48,12 +48,12 @@ export function calculateFRA(birthDate: Date): FRA {
  * until the user reaches their FRA.
  *
  * @param birthDate - The individual's birth date (to determine FRA)
- * @param colaRate - Expected annual COLA rate (e.g., 0.025 for 2.5%)
+ * @param colaRate - Expected annual COLA rate as percentage (e.g., 2.5 for 2.5%)
  * @returns Projected maximum monthly benefit at FRA
  */
 export function projectMaxBenefitAtFRA(
   birthDate: Date,
-  colaRate: number = 0.025
+  colaRate: number = 2.5
 ): number {
   const today = new Date();
   const currentYear = today.getFullYear();
@@ -78,7 +78,9 @@ export function projectMaxBenefitAtFRA(
   }
 
   // Project forward using compound COLA growth
-  const projectedMaxBenefit = currentMaxBenefit * Math.pow(1 + colaRate, yearsUntilFRA);
+  // Convert percentage to decimal (e.g., 2.5 → 0.025)
+  const colaDecimal = colaRate / 100;
+  const projectedMaxBenefit = currentMaxBenefit * Math.pow(1 + colaDecimal, yearsUntilFRA);
 
   return Math.round(projectedMaxBenefit);
 }
