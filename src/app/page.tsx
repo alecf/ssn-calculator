@@ -42,6 +42,10 @@ export default function Home() {
   // Current scenario being edited
   const [currentScenario, setCurrentScenario] = useState<Scenario>(defaultScenario);
 
+  // Track desired benefit as a percentage of projected max (this stays fixed when assumptions change)
+  // When age/COLA changes, the dollar amount recalculates but percentage stays the same
+  const [desiredBenefitPercentage, setDesiredBenefitPercentage] = useState(75); // Default to 75%
+
   // Track which scenario is being edited (if any) and if it's dirty
   const [editingScenarioId, setEditingScenarioId] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -141,8 +145,24 @@ export default function Home() {
     }
   }, [includeSpouseGlobally, isMounted]);
 
-  // Calculate current scenario
-  const currentResults = useCalculations(currentScenario);
+  // Project the maximum benefit at the user's FRA, accounting for COLA increases
+  const projectedMaxBenefit = projectMaxBenefitAtFRA(
+    currentScenario.birthDate,
+    currentScenario.colaRate
+  );
+
+  // Calculate expected benefit based on desired percentage of projected max
+  // This allows the percentage to stay fixed while dollar amount updates as assumptions change
+  const expectedBenefit = Math.round((projectedMaxBenefit * desiredBenefitPercentage) / 100);
+
+  // Create an updated scenario with the recalculated benefit
+  const scenarioWithCalculatedBenefit: Scenario = {
+    ...currentScenario,
+    benefitAmount: expectedBenefit,
+  };
+
+  // Calculate current scenario using the calculated benefit amount
+  const currentResults = useCalculations(scenarioWithCalculatedBenefit);
 
   // Calculate selected scenarios
   const selectedScenarioObjects = scenarios.filter((s) =>
@@ -202,13 +222,6 @@ export default function Home() {
     })),
   ];
 
-  // Validate current scenario
-  // Project the maximum benefit at the user's FRA, accounting for COLA increases
-  const projectedMaxBenefit = projectMaxBenefitAtFRA(
-    currentScenario.birthDate,
-    currentScenario.colaRate
-  );
-
   // Calculate FRA year for display in feedback
   const fra = calculateFRA(currentScenario.birthDate);
   const fraAge = fra.years + fra.months / 12;
@@ -216,7 +229,7 @@ export default function Home() {
   const fraYear = birthYear + Math.floor(fraAge);
 
   const benefitFeedback = getBenefitAmountFeedback(
-    currentScenario.benefitAmount,
+    expectedBenefit,
     projectedMaxBenefit,
     fraYear
   );
@@ -371,6 +384,25 @@ export default function Home() {
     setIsDirty(true);
   };
 
+  // Handle benefit percentage changes
+  // When user changes the percentage slider, update desiredBenefitPercentage
+  // The actual benefit amount will be recalculated as Projected Max × Percentage
+  const handleBenefitPercentageChange = (percentage: number) => {
+    setDesiredBenefitPercentage(percentage);
+    // Mark scenario as dirty since the benefit is changing
+    setIsDirty(true);
+  };
+
+  // Handle direct benefit amount input changes
+  // When user types in the benefit amount directly, calculate what percentage that represents
+  const handleDirectBenefitAmountChange = (amount: number) => {
+    if (projectedMaxBenefit > 0) {
+      const calculatedPercent = (amount / projectedMaxBenefit) * 100;
+      setDesiredBenefitPercentage(Math.round(calculatedPercent));
+      setIsDirty(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
       {/* Header */}
@@ -491,15 +523,16 @@ export default function Home() {
               <TabsContent value="individual" className="space-y-4">
                 <IndividualInputs
                   birthDate={currentScenario.birthDate}
-                  benefitAmount={currentScenario.benefitAmount}
+                  benefitAmount={expectedBenefit}
+                  desiredPercentage={desiredBenefitPercentage}
+                  projectedMaxBenefit={projectedMaxBenefit}
                   claimingAge={currentScenario.claimingAge}
                   colaRate={currentScenario.colaRate}
                   onBirthDateChange={(date) =>
                     markDirty({ ...currentScenario, birthDate: date })
                   }
-                  onBenefitAmountChange={(amount) =>
-                    markDirty({ ...currentScenario, benefitAmount: amount })
-                  }
+                  onBenefitAmountChange={handleDirectBenefitAmountChange}
+                  onBenefitPercentageChange={handleBenefitPercentageChange}
                   onClaimingAgeChange={(age) =>
                     markDirty({ ...currentScenario, claimingAge: age })
                   }

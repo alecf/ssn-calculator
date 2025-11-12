@@ -31,11 +31,14 @@ import { getBenefitAmountFeedback, getFeedbackVariant } from '@/lib/validation/f
 
 interface IndividualInputsProps {
   birthDate: Date;
-  benefitAmount: number;
+  benefitAmount: number;  // The calculated expected benefit (projectedMax × percentage)
+  desiredPercentage: number;  // The percentage of max the user wants (0-100)
+  projectedMaxBenefit: number;  // The projected max at FRA
   claimingAge: number;
   colaRate: number;
   onBirthDateChange: (date: Date) => void;
-  onBenefitAmountChange: (amount: number) => void;
+  onBenefitAmountChange: (amount: number) => void;  // Called when user enters dollar amount
+  onBenefitPercentageChange: (percentage: number) => void;  // Called when user changes percentage slider
   onClaimingAgeChange: (age: number) => void;
   onReset?: () => void;
 }
@@ -43,17 +46,18 @@ interface IndividualInputsProps {
 export function IndividualInputs({
   birthDate,
   benefitAmount,
+  desiredPercentage,
+  projectedMaxBenefit,
   claimingAge,
   colaRate,
   onBirthDateChange,
   onBenefitAmountChange,
+  onBenefitPercentageChange,
   onClaimingAgeChange,
   onReset,
 }: IndividualInputsProps) {
   const fra = calculateFRA(birthDate);
   const fraAge = getFRAAsDecimal(fra);
-  const projectedMaxBenefit = projectMaxBenefitAtFRA(birthDate, colaRate);
-  const benefitPercent = Math.round((benefitAmount / projectedMaxBenefit) * 100);
 
   // Calculate FRA year for feedback display
   const birthYear = birthDate.getFullYear();
@@ -102,8 +106,9 @@ export function IndividualInputs({
 
   const handleBenefitPercentChange = (value: number[]) => {
     const percent = value[0];
-    const newAmount = Math.round((projectedMaxBenefit * percent) / 100);
-    onBenefitAmountChange(newAmount);
+    // When the slider changes, call the percentage change handler
+    // The benefit amount will be recalculated in the parent component
+    onBenefitPercentageChange(percent);
   };
 
   // Calculate the year for a given age
@@ -210,7 +215,7 @@ export function IndividualInputs({
         <div className="space-y-2">
           <div className="text-xs text-muted-foreground">Percentage of Maximum Benefit</div>
           <Slider
-            value={[benefitPercent]}
+            value={[desiredPercentage]}
             onValueChange={handleBenefitPercentChange}
             min={0}
             max={100}
@@ -219,14 +224,14 @@ export function IndividualInputs({
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>0%</span>
-            <span className="font-semibold">{benefitPercent}% of max (${projectedMaxBenefit.toLocaleString()})</span>
+            <span className="font-semibold">{desiredPercentage}% of max (${projectedMaxBenefit.toLocaleString()})</span>
             <span>100%</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">
-            ${benefitAmount.toLocaleString()}/month = {benefitPercent}% of maximum
+            ${benefitAmount.toLocaleString()}/month = {desiredPercentage}% of projected maximum
           </span>
           <TooltipProvider>
             <Tooltip>
