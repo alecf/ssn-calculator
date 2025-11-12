@@ -66,6 +66,9 @@ export default function Home() {
   // Track if component has mounted (for hydration)
   const [isMounted, setIsMounted] = useState(false);
 
+  // Global display mode (today's dollars vs future dollars)
+  const [globalDisplayMode, setGlobalDisplayMode] = useState<'today-dollars' | 'future-dollars'>('today-dollars');
+
   // Global spouse settings (persist across scenarios)
   const [globalSpouseBirthDate, setGlobalSpouseBirthDate] = useState<Date>(
     new Date(defaultScenario.birthDate.getFullYear() - 2, defaultScenario.birthDate.getMonth(), 15)
@@ -427,6 +430,28 @@ export default function Home() {
                   })}
                 </div>
               </div>
+
+              {/* Display Mode Selector */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                <span className="text-xs font-semibold text-muted-foreground">Display:</span>
+                <Button
+                  variant={globalDisplayMode === 'today-dollars' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setGlobalDisplayMode('today-dollars')}
+                >
+                  Today's $
+                </Button>
+                <Button
+                  variant={globalDisplayMode === 'future-dollars' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setGlobalDisplayMode('future-dollars')}
+                >
+                  Future $
+                </Button>
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -469,7 +494,7 @@ export default function Home() {
             <Card className="p-6">
               <CumulativeBenefitsChart
                 data={chartData}
-                displayMode={currentScenario.displayMode}
+                displayMode={globalDisplayMode}
                 currentAge={currentAge}
                 breakevens={breakevens}
               />
