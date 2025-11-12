@@ -161,6 +161,15 @@ export default function Home() {
   // This allows the percentage to stay fixed while dollar amount updates as assumptions change
   const expectedBenefit = Math.round((projectedMaxBenefit * desiredBenefitPercentage) / 100);
 
+  // Sync currentScenario.benefitAmount with the calculated expectedBenefit
+  // This ensures that when the percentage changes, the scenario's benefitAmount is updated
+  useEffect(() => {
+    setCurrentScenario((prev) => ({
+      ...prev,
+      benefitAmount: expectedBenefit,
+    }));
+  }, [expectedBenefit]);
+
   // Create an updated scenario with the recalculated benefit
   const scenarioWithCalculatedBenefit: Scenario = {
     ...currentScenario,
@@ -265,7 +274,7 @@ export default function Home() {
     }
 
     try {
-      let scenarioToSave = { ...currentScenario };
+      let scenarioToSave = { ...currentScenario, benefitAmount: expectedBenefit };
 
       // If spouse is enabled globally, ensure scenario has spouse data
       if (includeSpouseGlobally) {
@@ -286,20 +295,10 @@ export default function Home() {
         await save(scenarioToSave);
       }
 
-      // Clear editing state
+      // Clear editing state but keep current scenario as-is
       setEditingScenarioId(null);
       setIsDirty(false);
       setOriginalScenarioValues(null);
-
-      // Create a new scenario for the next one
-      const newScenario = createDefaultScenario({ name: 'Current Scenario' });
-      if (includeSpouseGlobally) {
-        newScenario.includeSpouse = true;
-        newScenario.spouseBirthDate = globalSpouseBirthDate;
-        newScenario.spouseBenefitAmount = newScenario.benefitAmount * 0.5;
-        newScenario.spouseClaimingAge = newScenario.claimingAge;
-      }
-      setCurrentScenario(newScenario);
     } catch (error) {
       console.error('Failed to save scenario:', error);
     }
@@ -319,6 +318,7 @@ export default function Home() {
 
       let scenarioToSave = {
         ...currentScenario,
+        benefitAmount: expectedBenefit,
         name: generatedName,
         id: crypto.randomUUID(), // Create new ID
       };
@@ -337,20 +337,10 @@ export default function Home() {
 
       await save(scenarioToSave);
 
-      // Clear editing state
+      // Clear editing state but keep current scenario as-is
       setEditingScenarioId(null);
       setIsDirty(false);
       setOriginalScenarioValues(null);
-
-      // Create a new scenario for the next one
-      const newScenario = createDefaultScenario({ name: 'Current Scenario' });
-      if (includeSpouseGlobally) {
-        newScenario.includeSpouse = true;
-        newScenario.spouseBirthDate = globalSpouseBirthDate;
-        newScenario.spouseBenefitAmount = newScenario.benefitAmount * 0.5;
-        newScenario.spouseClaimingAge = newScenario.claimingAge;
-      }
-      setCurrentScenario(newScenario);
     } catch (error) {
       console.error('Failed to save scenario:', error);
     }
@@ -412,6 +402,9 @@ export default function Home() {
   // The actual benefit amount will be recalculated as Projected Max × Percentage
   const handleBenefitPercentageChange = (percentage: number) => {
     setDesiredBenefitPercentage(percentage);
+    // Update the scenario with the new benefit amount
+    const newBenefitAmount = Math.round((projectedMaxBenefit * percentage) / 100);
+    setCurrentScenario((prev) => ({ ...prev, benefitAmount: newBenefitAmount }));
     // Mark scenario as dirty since the benefit is changing
     setIsDirty(true);
   };
@@ -422,6 +415,8 @@ export default function Home() {
     if (projectedMaxBenefit > 0) {
       const calculatedPercent = (amount / projectedMaxBenefit) * 100;
       setDesiredBenefitPercentage(Math.round(calculatedPercent));
+      // Update the scenario with the new benefit amount
+      setCurrentScenario((prev) => ({ ...prev, benefitAmount: amount }));
       setIsDirty(true);
     }
   };
