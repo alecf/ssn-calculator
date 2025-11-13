@@ -449,7 +449,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Social Security Calculator
+                Social Security Benefits Calculator
               </h1>
               <p className="text-sm text-muted-foreground">
                 Find the optimal age to start collecting benefits
