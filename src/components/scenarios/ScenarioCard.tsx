@@ -11,6 +11,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { Scenario } from '@/types/scenario';
 import { calculateBenefit } from '@/lib/calculations/ssaBenefits';
 import { getTotalLifetimeBenefit } from '@/lib/calculations/financialProjections';
@@ -104,38 +110,58 @@ export function ScenarioCard({
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            {isEditingName ? (
-              <Input
-                autoFocus
-                value={editedName}
-                onChange={(e) => setEditedName(e.target.value)}
-                onBlur={handleSaveName}
-                onKeyDown={handleKeyDown}
-                onClick={(e) => e.stopPropagation()}
-                className="font-semibold text-lg h-8 mb-2"
-                placeholder="Scenario name..."
-              />
-            ) : (
-              <h3
-                className="font-semibold text-lg cursor-text hover:text-primary hover:underline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsEditingName(true);
-                  setEditedName(scenario.name);
-                }}
-              >
-                {scenario.name}
-              </h3>
-            )}
-            <p className="text-sm text-muted-foreground">
-              {getClaimingDescription()}
-            </p>
+            <div className="flex items-center gap-2">
+              {isEditingName ? (
+                <Input
+                  autoFocus
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onBlur={handleSaveName}
+                  onKeyDown={handleKeyDown}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-semibold text-lg h-8 mb-2"
+                  placeholder="Scenario name..."
+                />
+              ) : (
+                <>
+                  {isSelected && (
+                    <span className="text-primary font-bold">✓</span>
+                  )}
+                  <h3
+                    className="font-semibold text-lg cursor-text hover:text-primary hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsEditingName(true);
+                      setEditedName(scenario.name);
+                    }}
+                  >
+                    {scenario.name}
+                  </h3>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm text-muted-foreground">
+                {getClaimingDescription()}
+              </p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs font-mono bg-muted/60 px-2 py-0.5 rounded cursor-help hover:bg-muted">
+                      {scenario.colaRate}%/{scenario.inflationRate}%/{scenario.investmentGrowthRate}%
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="text-xs space-y-1">
+                      <div>COLA: {scenario.colaRate}%</div>
+                      <div>Inflation: {scenario.inflationRate}%</div>
+                      <div>Investment Growth: {scenario.investmentGrowthRate}%</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
-          {isSelected && (
-            <Badge variant="default" className="shrink-0">
-              Selected
-            </Badge>
-          )}
         </div>
 
         {/* Key Metrics */}

@@ -129,9 +129,9 @@ export function AssumptionsPanel({
                 </div>
                 <p className="text-xs text-muted-foreground">{p.description}</p>
                 <div className="mt-3 text-xs space-y-1 font-mono">
-                  <div>Growth: {ASSUMPTION_PRESETS[p.key].investmentGrowthRate}%</div>
                   <div>COLA: {ASSUMPTION_PRESETS[p.key].colaRate}%</div>
                   <div>Inflation: {ASSUMPTION_PRESETS[p.key].inflationRate}%</div>
+                  <div>Growth: {ASSUMPTION_PRESETS[p.key].investmentGrowthRate}%</div>
                 </div>
               </div>
             </button>
@@ -157,9 +157,9 @@ export function AssumptionsPanel({
               <p className="text-xs text-muted-foreground">Your personalized assumptions</p>
               {activePreset === 'custom' && (
                 <div className="mt-3 text-xs space-y-1 font-mono">
-                  <div>Growth: {growthRate}%</div>
                   <div>COLA: {colaRate}%</div>
                   <div>Inflation: {inflationRate}%</div>
+                  <div>Growth: {growthRate}%</div>
                 </div>
               )}
             </div>

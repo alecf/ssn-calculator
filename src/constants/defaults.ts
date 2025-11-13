@@ -58,7 +58,6 @@ export function getSuggestedScenarioName(
   claimingAge: number,
   assumptionPreset: 'conservative' | 'moderate' | 'historical' | 'custom'
 ): string {
-  const ageLabel = claimingAge === 62 ? 'Early (62)' : claimingAge === 70 ? 'Max (70)' : `Age ${claimingAge}`;
   const presetLabel =
     assumptionPreset === 'conservative'
       ? 'Conservative'
@@ -68,7 +67,7 @@ export function getSuggestedScenarioName(
           ? 'Historical'
           : 'Custom';
 
-  return `Retire at ${ageLabel} with ${presetLabel} assumptions`;
+  return `Retire @ ${claimingAge}, ${presetLabel}`;
 }
 
 /**
