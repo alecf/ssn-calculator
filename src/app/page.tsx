@@ -69,6 +69,9 @@ export default function Home() {
   // Global display mode (today's dollars vs future dollars)
   const [globalDisplayMode, setGlobalDisplayMode] = useState<'today-dollars' | 'future-dollars'>('today-dollars');
 
+  // Chart type (cumulative vs monthly)
+  const [chartType, setChartType] = useState<'cumulative' | 'monthly'>('cumulative');
+
   // Global spouse settings (persist across scenarios)
   const [globalSpouseBirthDate, setGlobalSpouseBirthDate] = useState<Date>(
     new Date(defaultScenario.birthDate.getFullYear() - 2, defaultScenario.birthDate.getMonth(), 15)
@@ -490,6 +493,8 @@ export default function Home() {
                 data={chartData}
                 displayMode={globalDisplayMode}
                 onDisplayModeChange={setGlobalDisplayMode}
+                chartType={chartType}
+                onChartTypeChange={setChartType}
                 currentAge={currentAge}
                 breakevens={breakevens}
               />

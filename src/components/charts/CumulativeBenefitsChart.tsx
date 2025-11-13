@@ -32,6 +32,8 @@ interface CumulativeBenefitsChartProps {
   }>;
   displayMode: 'today-dollars' | 'future-dollars';
   onDisplayModeChange: (mode: 'today-dollars' | 'future-dollars') => void;
+  chartType?: 'cumulative' | 'monthly';
+  onChartTypeChange?: (type: 'cumulative' | 'monthly') => void;
   currentAge?: number;
   breakevens?: Array<{
     age: number;
@@ -133,6 +135,8 @@ export function CumulativeBenefitsChart({
   data,
   displayMode,
   onDisplayModeChange,
+  chartType = 'cumulative',
+  onChartTypeChange,
   currentAge,
   breakevens = [],
 }: CumulativeBenefitsChartProps) {
@@ -156,24 +160,37 @@ export function CumulativeBenefitsChart({
   // Get all unique ages from all scenarios
   const allAges = new Set<number>();
   data.forEach((scenario) => {
-    scenario.benefits.forEach((b) => allAges.add(b.age));
+    scenario.yearlyBenefits.forEach((b) => allAges.add(b.age));
   });
 
   // Sort ages
   const sortedAges = Array.from(allAges).sort((a, b) => a - b);
 
-  // Build chart data
+  // Build chart data based on chart type
   sortedAges.forEach((age) => {
     const dataPoint: { age: number; [key: string]: number } = { age };
 
     data.forEach((scenario) => {
-      const benefit = scenario.benefits.find((b) => b.age === age);
-      if (benefit) {
-        const value =
-          displayMode === 'today-dollars'
-            ? benefit.netValue ?? benefit.cumulativeAdjusted
-            : benefit.cumulative;
-        dataPoint[scenario.name] = Math.round(value);
+      if (chartType === 'monthly') {
+        // Show monthly benefits from yearlyBenefits
+        const yearlyBenefit = scenario.yearlyBenefits.find((b) => b.age === age);
+        if (yearlyBenefit) {
+          const value =
+            displayMode === 'today-dollars'
+              ? yearlyBenefit.inflationAdjusted
+              : yearlyBenefit.monthlyBenefit;
+          dataPoint[scenario.name] = Math.round(value);
+        }
+      } else {
+        // Show cumulative benefits (original behavior)
+        const benefit = scenario.benefits.find((b) => b.age === age);
+        if (benefit) {
+          const value =
+            displayMode === 'today-dollars'
+              ? benefit.netValue ?? benefit.cumulativeAdjusted
+              : benefit.cumulative;
+          dataPoint[scenario.name] = Math.round(value);
+        }
       }
     });
 
@@ -190,34 +207,61 @@ export function CumulativeBenefitsChart({
     return `$${value.toFixed(0)}`;
   };
 
+  const chartTitle = chartType === 'cumulative'
+    ? 'Cumulative Benefits Over Time'
+    : 'Monthly Benefits Over Time';
+  const yAxisLabel = chartType === 'cumulative' ? 'Total Benefits' : 'Monthly Benefit';
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold">Cumulative Benefits Over Time</h3>
+          <h3 className="text-lg font-semibold">{chartTitle}</h3>
           <p className="text-sm text-muted-foreground">
             {displayMode === 'today-dollars' ? "Today's Dollars" : 'Future Dollars'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-          <span className="text-xs font-semibold text-muted-foreground">Display:</span>
-          <Button
-            variant={displayMode === 'today-dollars' ? 'default' : 'ghost'}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => onDisplayModeChange('today-dollars')}
-          >
-            Today's $
-          </Button>
-          <Button
-            variant={displayMode === 'future-dollars' ? 'default' : 'ghost'}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => onDisplayModeChange('future-dollars')}
-          >
-            Future $
-          </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <span className="text-xs font-semibold text-muted-foreground">Type:</span>
+            <Button
+              variant={chartType === 'cumulative' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => onChartTypeChange?.('cumulative')}
+            >
+              Total
+            </Button>
+            <Button
+              variant={chartType === 'monthly' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => onChartTypeChange?.('monthly')}
+            >
+              Monthly
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <span className="text-xs font-semibold text-muted-foreground">Display:</span>
+            <Button
+              variant={displayMode === 'today-dollars' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => onDisplayModeChange('today-dollars')}
+            >
+              Today's $
+            </Button>
+            <Button
+              variant={displayMode === 'future-dollars' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => onDisplayModeChange('future-dollars')}
+            >
+              Future $
+            </Button>
+          </div>
         </div>
 
         {breakevens.length > 0 && (
@@ -245,7 +289,7 @@ export function CumulativeBenefitsChart({
           />
           <YAxis
             label={{
-              value: 'Total Benefits',
+              value: yAxisLabel,
               angle: -90,
               position: 'insideLeft',
             }}
