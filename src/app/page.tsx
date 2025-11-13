@@ -20,7 +20,7 @@ import { SettingsDialog } from '@/components/settings/BirthdateSettingsDialog';
 import { createDefaultScenario, getSuggestedScenarioName } from '@/constants/defaults';
 import { useScenarios } from '@/hooks/useScenarios';
 import { useCalculations, useMultipleCalculations } from '@/hooks/useCalculations';
-import { findBreakevenAge, findBreakevenAgeWithOptions } from '@/lib/calculations/breakeven';
+import { findBreakevenAge } from '@/lib/calculations/breakeven';
 import { getBenefitAmountFeedback } from '@/lib/validation/feedback';
 import { getMaxBenefit } from '@/constants/ssaRules';
 import {
@@ -201,16 +201,18 @@ export default function Home() {
       for (let j = i + 1; j < selectedResults.length; j++) {
         const r1 = selectedResults[i];
         const r2 = selectedResults[j];
-        const age = findBreakevenAgeWithOptions(
+        const age = findBreakevenAge(
           r1.cumulativeBenefits,
           r2.cumulativeBenefits,
-          withInflation,
-          withInvestment,
           r1.yearlyBenefits,
           r2.yearlyBenefits,
-          r1.scenario.investmentGrowthRate,
-          r2.scenario.investmentGrowthRate,
-          investmentRatio
+          {
+            useInflation: withInflation,
+            useInvestment: withInvestment,
+            investmentGrowthRate1: r1.scenario.investmentGrowthRate,
+            investmentGrowthRate2: r2.scenario.investmentGrowthRate,
+            investmentRatio,
+          }
         );
         if (age) {
           breakevens.push({
