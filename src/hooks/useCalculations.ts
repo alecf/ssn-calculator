@@ -44,7 +44,7 @@ export function useCalculations(scenario: Scenario): ScenarioResults {
       (cb) => cb.age === scenario.lifetimeAge
     );
     const totalLifetimeBenefit = lifetimeBenefit
-      ? lifetimeBenefit.netValue ?? lifetimeBenefit.cumulativeAdjusted
+      ? lifetimeBenefit.cumulativeAdjusted
       : 0;
 
     return {
@@ -93,7 +93,7 @@ export function useMultipleCalculations(
         (cb) => cb.age === scenario.lifetimeAge
       );
       const totalLifetimeBenefit = lifetimeBenefit
-        ? lifetimeBenefit.netValue ?? lifetimeBenefit.cumulativeAdjusted
+        ? lifetimeBenefit.cumulativeAdjusted
         : 0;
 
       return {

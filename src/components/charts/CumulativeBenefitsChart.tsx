@@ -227,7 +227,7 @@ export function CumulativeBenefitsChart({
           } else if (withInflation) {
             // Use inflation-adjusted cumulative
             value = displayMode === 'today-dollars'
-              ? benefit.netValue ?? benefit.cumulativeAdjusted
+              ? benefit.cumulativeAdjusted
               : benefit.cumulative;
           } else {
             // Use nominal cumulative

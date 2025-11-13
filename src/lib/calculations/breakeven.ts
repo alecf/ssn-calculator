@@ -142,8 +142,8 @@ export function calculateAllBreakevens(
         // Determine which is always better
         const lastAge1 = data1[data1.length - 1];
         const lastAge2 = data2[data2.length - 1];
-        const cumulative1 = lastAge1.netValue ?? lastAge1.cumulativeAdjusted;
-        const cumulative2 = lastAge2.netValue ?? lastAge2.cumulativeAdjusted;
+        const cumulative1 = lastAge1.cumulativeAdjusted;
+        const cumulative2 = lastAge2.cumulativeAdjusted;
 
         if (cumulative1 > cumulative2) {
           description = `${name1} is always better than ${name2}`;
@@ -194,7 +194,7 @@ export function findBestScenarios(
     targetAge: number
   ): number => {
     const benefit = cumulativeBenefits.find((cb) => cb.age === targetAge);
-    return benefit?.netValue ?? benefit?.cumulativeAdjusted ?? 0;
+    return benefit?.cumulativeAdjusted ?? 0;
   };
 
   // Find best for short term
@@ -259,28 +259,26 @@ export function simpleBreakeven(
 }
 
 /**
- * Get the display value for a cumulative benefit based on inflation and investment toggles
+ * Get the display value for a cumulative benefit based on inflation and investment options
  *
  * This function applies the same transformation logic as the chart to ensure
  * breakeven calculations use the same values that are displayed.
  *
  * @param benefit - Cumulative benefit data point
- * @param withInflation - Whether to use inflation-adjusted values
- * @param withInvestment - Whether to include investment returns
- * @param yearlyBenefit - Yearly benefit data for context
+ * @param useInflation - Whether to use inflation-adjusted values
+ * @param useInvestment - Whether to include investment returns
  * @returns The display value to use for comparison
  */
 export function getDisplayValue(
   benefit: CumulativeBenefit,
-  withInflation: boolean,
-  withInvestment: boolean,
-  yearlyBenefit?: { inflationAdjusted: number; monthlyBenefit: number }
+  useInflation: boolean,
+  useInvestment: boolean
 ): number {
   // Priority order: investment > inflation > nominal
-  if (withInvestment && benefit.cumulativeWithInvestment !== undefined) {
+  if (useInvestment && benefit.cumulativeWithInvestment !== undefined) {
     return benefit.cumulativeWithInvestment;
-  } else if (withInflation) {
-    return benefit.netValue ?? benefit.cumulativeAdjusted;
+  } else if (useInflation) {
+    return benefit.cumulativeAdjusted;
   } else {
     return benefit.cumulative;
   }
