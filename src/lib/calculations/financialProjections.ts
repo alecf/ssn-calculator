@@ -294,3 +294,56 @@ export function compareWithOpportunityCost(
     };
   });
 }
+
+/**
+ * Add investment returns to cumulative benefits
+ *
+ * Calculates the accumulated value if a percentage of monthly benefits
+ * are invested at a given growth rate with monthly compounding.
+ *
+ * @param cumulativeBenefits - Array of cumulative benefits (in today's dollars)
+ * @param yearlyBenefits - Array of yearly benefits (for monthly amounts)
+ * @param investmentGrowthRate - Annual investment growth rate (e.g., 5.0 for 5%)
+ * @param investmentRatio - Percentage of monthly benefit to invest (0-100, default 100 for testing)
+ * @returns Cumulative benefits array with investment fields populated
+ */
+export function addInvestmentReturns(
+  cumulativeBenefits: CumulativeBenefit[],
+  yearlyBenefits: YearlyBenefit[],
+  investmentGrowthRate: number,
+  investmentRatio: number = 100
+): CumulativeBenefit[] {
+  // Convert annual rate to monthly rate
+  const monthlyRate = Math.pow(1 + investmentGrowthRate / 100, 1 / 12) - 1;
+
+  let totalInvestedPrincipal = 0;
+  let investedValue = 0;
+
+  return cumulativeBenefits.map((cb, index) => {
+    const yearlyBenefit = yearlyBenefits[index];
+
+    if (yearlyBenefit) {
+      // Calculate monthly benefit amount and how much to invest
+      const monthlyBenefit = yearlyBenefit.inflationAdjusted; // Use today's dollars
+      const monthlyInvestment = (monthlyBenefit * investmentRatio) / 100;
+
+      // For this year (12 months), calculate investment growth
+      // Principal accumulates, and existing investments compound
+      for (let month = 0; month < 12; month++) {
+        // First, compound existing invested value
+        investedValue *= 1 + monthlyRate;
+        // Then, add new monthly investment
+        investedValue += monthlyInvestment;
+        // Track total principal invested
+        totalInvestedPrincipal += monthlyInvestment;
+      }
+    }
+
+    return {
+      ...cb,
+      investmentPrincipal: totalInvestedPrincipal,
+      investedValue: investedValue,
+      cumulativeWithInvestment: cb.cumulativeAdjusted + investedValue,
+    };
+  });
+}

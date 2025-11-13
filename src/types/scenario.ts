@@ -86,6 +86,10 @@ export interface CumulativeBenefit {
   netValue?: number;  // cumulative - opportunityCost
   spouseCumulative?: number;
   householdCumulative?: number;
+  // Investment-related fields (calculated if withInvestment is enabled)
+  investmentPrincipal?: number;  // Total principal invested (at investmentRatio)
+  investedValue?: number;  // Principal + accumulated investment returns
+  cumulativeWithInvestment?: number;  // cumulative + investedValue (total net worth)
 }
 
 /**

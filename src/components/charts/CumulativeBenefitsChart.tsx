@@ -21,6 +21,7 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import type { CumulativeBenefit, YearlyBenefit } from '@/types/scenario';
+import { addInvestmentReturns } from '@/lib/calculations/financialProjections';
 
 interface CumulativeBenefitsChartProps {
   data: Array<{
@@ -29,11 +30,17 @@ interface CumulativeBenefitsChartProps {
     yearlyBenefits: YearlyBenefit[];
     color: string;
     claimingAge: number;
+    investmentGrowthRate?: number;  // For investment calculations
   }>;
   displayMode: 'today-dollars' | 'future-dollars';
   onDisplayModeChange: (mode: 'today-dollars' | 'future-dollars') => void;
   chartType?: 'cumulative' | 'monthly';
   onChartTypeChange?: (type: 'cumulative' | 'monthly') => void;
+  withInflation?: boolean;
+  onInflationChange?: (withInflation: boolean) => void;
+  withInvestment?: boolean;
+  onInvestmentChange?: (withInvestment: boolean) => void;
+  investmentRatio?: number;  // Percentage of benefits to invest (0-100)
   currentAge?: number;
   breakevens?: Array<{
     age: number;
@@ -137,6 +144,11 @@ export function CumulativeBenefitsChart({
   onDisplayModeChange,
   chartType = 'cumulative',
   onChartTypeChange,
+  withInflation = true,
+  onInflationChange,
+  withInvestment = false,
+  onInvestmentChange,
+  investmentRatio = 100,
   currentAge,
   breakevens = [],
 }: CumulativeBenefitsChartProps) {
@@ -166,29 +178,61 @@ export function CumulativeBenefitsChart({
   // Sort ages
   const sortedAges = Array.from(allAges).sort((a, b) => a - b);
 
+  // Prepare benefits with investment calculations if needed
+  const processedScenarios = data.map((scenario) => {
+    let benefits = scenario.benefits;
+
+    // Apply investment returns if toggled on
+    if (withInvestment && scenario.investmentGrowthRate !== undefined) {
+      benefits = addInvestmentReturns(
+        scenario.benefits,
+        scenario.yearlyBenefits,
+        scenario.investmentGrowthRate,
+        investmentRatio
+      );
+    }
+
+    return { ...scenario, benefits };
+  });
+
   // Build chart data based on chart type
   sortedAges.forEach((age) => {
     const dataPoint: { age: number; [key: string]: number } = { age };
 
-    data.forEach((scenario) => {
+    processedScenarios.forEach((scenario) => {
       if (chartType === 'monthly') {
         // Show monthly benefits from yearlyBenefits
         const yearlyBenefit = scenario.yearlyBenefits.find((b) => b.age === age);
         if (yearlyBenefit) {
-          const value =
-            displayMode === 'today-dollars'
+          let value: number;
+          if (withInflation) {
+            // Use inflation-adjusted (today's dollars)
+            value = displayMode === 'today-dollars'
               ? yearlyBenefit.inflationAdjusted
               : yearlyBenefit.monthlyBenefit;
+          } else {
+            // Use nominal (future dollars)
+            value = yearlyBenefit.monthlyBenefit;
+          }
           dataPoint[scenario.name] = Math.round(value);
         }
       } else {
-        // Show cumulative benefits (original behavior)
+        // Show cumulative benefits
         const benefit = scenario.benefits.find((b) => b.age === age);
         if (benefit) {
-          const value =
-            displayMode === 'today-dollars'
+          let value: number;
+          if (withInvestment && benefit.cumulativeWithInvestment !== undefined) {
+            // Use cumulative + investment value
+            value = benefit.cumulativeWithInvestment;
+          } else if (withInflation) {
+            // Use inflation-adjusted cumulative
+            value = displayMode === 'today-dollars'
               ? benefit.netValue ?? benefit.cumulativeAdjusted
               : benefit.cumulative;
+          } else {
+            // Use nominal cumulative
+            value = benefit.cumulative;
+          }
           dataPoint[scenario.name] = Math.round(value);
         }
       }
@@ -260,6 +304,30 @@ export function CumulativeBenefitsChart({
               onClick={() => onDisplayModeChange('future-dollars')}
             >
               Future $
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <span className="text-xs font-semibold text-muted-foreground">Inflation:</span>
+            <Button
+              variant={withInflation ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => onInflationChange?.(!withInflation)}
+            >
+              {withInflation ? '✓ On' : 'Off'}
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <span className="text-xs font-semibold text-muted-foreground">Investment:</span>
+            <Button
+              variant={withInvestment ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => onInvestmentChange?.(!withInvestment)}
+            >
+              {withInvestment ? '✓ On' : 'Off'}
             </Button>
           </div>
         </div>

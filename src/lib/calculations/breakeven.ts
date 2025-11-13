@@ -5,7 +5,8 @@
  * The breakeven age is when the cumulative benefits of two scenarios become equal.
  */
 
-import type { CumulativeBenefit, BreakevenAnalysis, Scenario } from '@/types/scenario';
+import type { CumulativeBenefit, BreakevenAnalysis, Scenario, YearlyBenefit } from '@/types/scenario';
+import { addInvestmentReturns } from './financialProjections';
 
 /**
  * Find the breakeven age between two scenarios
@@ -211,4 +212,125 @@ export function simpleBreakeven(
     scenario1.cumulativeBenefits,
     scenario2.cumulativeBenefits
   );
+}
+
+/**
+ * Get the display value for a cumulative benefit based on inflation and investment toggles
+ *
+ * This function applies the same transformation logic as the chart to ensure
+ * breakeven calculations use the same values that are displayed.
+ *
+ * @param benefit - Cumulative benefit data point
+ * @param withInflation - Whether to use inflation-adjusted values
+ * @param withInvestment - Whether to include investment returns
+ * @param yearlyBenefit - Yearly benefit data for context
+ * @returns The display value to use for comparison
+ */
+export function getDisplayValue(
+  benefit: CumulativeBenefit,
+  withInflation: boolean,
+  withInvestment: boolean,
+  yearlyBenefit?: { inflationAdjusted: number; monthlyBenefit: number }
+): number {
+  // Priority order: investment > inflation > nominal
+  if (withInvestment && benefit.cumulativeWithInvestment !== undefined) {
+    return benefit.cumulativeWithInvestment;
+  } else if (withInflation) {
+    return benefit.netValue ?? benefit.cumulativeAdjusted;
+  } else {
+    return benefit.cumulative;
+  }
+}
+
+/**
+ * Find breakeven age considering inflation and investment toggles
+ *
+ * This recalculates breakeven using the same values displayed in the chart.
+ *
+ * @param scenario1Data - Cumulative benefits for first scenario
+ * @param scenario2Data - Cumulative benefits for second scenario
+ * @param withInflation - Whether to use inflation-adjusted values
+ * @param withInvestment - Whether to include investment returns
+ * @param scenario1Yearly - Yearly benefits for scenario 1
+ * @param scenario2Yearly - Yearly benefits for scenario 2
+ * @param investmentGrowthRate1 - Investment growth rate for scenario 1 (optional)
+ * @param investmentGrowthRate2 - Investment growth rate for scenario 2 (optional)
+ * @param investmentRatio - Percentage of benefits to invest (0-100, default 100)
+ * @returns Breakeven age, or null if they never cross
+ */
+export function findBreakevenAgeWithToggles(
+  scenario1Data: CumulativeBenefit[],
+  scenario2Data: CumulativeBenefit[],
+  withInflation: boolean,
+  withInvestment: boolean,
+  scenario1Yearly?: YearlyBenefit[],
+  scenario2Yearly?: YearlyBenefit[],
+  investmentGrowthRate1?: number,
+  investmentGrowthRate2?: number,
+  investmentRatio: number = 100
+): number | null {
+  // Apply investment returns if needed
+  let benefits1 = scenario1Data;
+  let benefits2 = scenario2Data;
+
+  if (withInvestment) {
+    if (scenario1Yearly && investmentGrowthRate1 !== undefined) {
+      benefits1 = addInvestmentReturns(
+        scenario1Data,
+        scenario1Yearly,
+        investmentGrowthRate1,
+        investmentRatio
+      );
+    }
+    if (scenario2Yearly && investmentGrowthRate2 !== undefined) {
+      benefits2 = addInvestmentReturns(
+        scenario2Data,
+        scenario2Yearly,
+        investmentGrowthRate2,
+        investmentRatio
+      );
+    }
+  }
+
+  // Find common age range
+  const minAge = Math.max(
+    benefits1[0]?.age || 0,
+    benefits2[0]?.age || 0
+  );
+  const maxAge = Math.min(
+    benefits1[benefits1.length - 1]?.age || 100,
+    benefits2[benefits2.length - 1]?.age || 100
+  );
+
+  // Look for crossover point
+  let previousDiff = 0;
+
+  for (let age = minAge; age <= maxAge; age++) {
+    const benefit1 = benefits1.find((b) => b.age === age);
+    const benefit2 = benefits2.find((b) => b.age === age);
+
+    if (!benefit1 || !benefit2) continue;
+
+    // Get yearly benefits for context if provided
+    const yearly1 = scenario1Yearly?.find((b) => b.age === age);
+    const yearly2 = scenario2Yearly?.find((b) => b.age === age);
+
+    // Use display values based on toggle state
+    const cumulative1 = getDisplayValue(benefit1, withInflation, withInvestment, yearly1);
+    const cumulative2 = getDisplayValue(benefit2, withInflation, withInvestment, yearly2);
+
+    const diff = cumulative1 - cumulative2;
+
+    // Check for crossover (sign change)
+    if (age > minAge && previousDiff * diff < 0) {
+      // Linear interpolation to find exact crossover point
+      const ageDiff = Math.abs(previousDiff / (diff - previousDiff));
+      return age - 1 + ageDiff;
+    }
+
+    previousDiff = diff;
+  }
+
+  // No breakeven found
+  return null;
 }

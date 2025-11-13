@@ -20,7 +20,7 @@ import { SettingsDialog } from '@/components/settings/BirthdateSettingsDialog';
 import { createDefaultScenario, getSuggestedScenarioName } from '@/constants/defaults';
 import { useScenarios } from '@/hooks/useScenarios';
 import { useCalculations, useMultipleCalculations } from '@/hooks/useCalculations';
-import { findBreakevenAge } from '@/lib/calculations/breakeven';
+import { findBreakevenAge, findBreakevenAgeWithToggles } from '@/lib/calculations/breakeven';
 import { getBenefitAmountFeedback } from '@/lib/validation/feedback';
 import { getMaxBenefit } from '@/constants/ssaRules';
 import {
@@ -71,6 +71,11 @@ export default function Home() {
 
   // Chart type (cumulative vs monthly)
   const [chartType, setChartType] = useState<'cumulative' | 'monthly'>('cumulative');
+
+  // Chart toggles (inflation and investment)
+  const [withInflation, setWithInflation] = useState(true);
+  const [withInvestment, setWithInvestment] = useState(false);
+  const [investmentRatio, setInvestmentRatio] = useState(100); // Default to 100% for now
 
   // Global spouse settings (persist across scenarios)
   const [globalSpouseBirthDate, setGlobalSpouseBirthDate] = useState<Date>(
@@ -189,15 +194,23 @@ export default function Home() {
   const selectedResults = useMultipleCalculations(selectedScenarioObjects);
 
   // Calculate breakevens for all pairs of selected scenarios
+  // Use the same toggle states as the chart to ensure consistent display values
   const breakevens: Array<{ age: number; scenario1: string; scenario2: string }> = [];
   if (selectedResults.length >= 2) {
     for (let i = 0; i < selectedResults.length; i++) {
       for (let j = i + 1; j < selectedResults.length; j++) {
         const r1 = selectedResults[i];
         const r2 = selectedResults[j];
-        const age = findBreakevenAge(
+        const age = findBreakevenAgeWithToggles(
           r1.cumulativeBenefits,
-          r2.cumulativeBenefits
+          r2.cumulativeBenefits,
+          withInflation,
+          withInvestment,
+          r1.yearlyBenefits,
+          r2.yearlyBenefits,
+          r1.scenario.investmentGrowthRate,
+          r2.scenario.investmentGrowthRate,
+          investmentRatio
         );
         if (age) {
           breakevens.push({
@@ -224,6 +237,7 @@ export default function Home() {
             yearlyBenefits: currentResults.yearlyBenefits,
             color: '#3b82f6',
             claimingAge: currentScenario.claimingAge,
+            investmentGrowthRate: currentScenario.investmentGrowthRate,
             isCurrent: true,
             strokeWidth: 3,
           },
@@ -235,6 +249,7 @@ export default function Home() {
       yearlyBenefits: result.yearlyBenefits,
       color: ['#10b981', '#8b5cf6', '#f59e0b', '#ef4444'][i] || '#06b6d4',
       claimingAge: result.scenario.claimingAge,
+      investmentGrowthRate: result.scenario.investmentGrowthRate,
       isCurrent: false,
       strokeWidth: 2,
     })),
@@ -495,6 +510,11 @@ export default function Home() {
                 onDisplayModeChange={setGlobalDisplayMode}
                 chartType={chartType}
                 onChartTypeChange={setChartType}
+                withInflation={withInflation}
+                onInflationChange={setWithInflation}
+                withInvestment={withInvestment}
+                onInvestmentChange={setWithInvestment}
+                investmentRatio={investmentRatio}
                 currentAge={currentAge}
                 breakevens={breakevens}
               />
