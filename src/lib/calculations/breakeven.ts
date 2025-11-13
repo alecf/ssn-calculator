@@ -243,14 +243,12 @@ export function getDisplayValue(
 }
 
 /**
- * Find breakeven age considering inflation and investment toggles
- *
- * This recalculates breakeven using the same values displayed in the chart.
+ * Find breakeven age between two scenarios with optional inflation and investment adjustments
  *
  * @param scenario1Data - Cumulative benefits for first scenario
  * @param scenario2Data - Cumulative benefits for second scenario
- * @param withInflation - Whether to use inflation-adjusted values
- * @param withInvestment - Whether to include investment returns
+ * @param useInflation - Whether to use inflation-adjusted values
+ * @param useInvestment - Whether to include investment returns
  * @param scenario1Yearly - Yearly benefits for scenario 1
  * @param scenario2Yearly - Yearly benefits for scenario 2
  * @param investmentGrowthRate1 - Investment growth rate for scenario 1 (optional)
@@ -258,11 +256,11 @@ export function getDisplayValue(
  * @param investmentRatio - Percentage of benefits to invest (0-100, default 100)
  * @returns Breakeven age, or null if they never cross
  */
-export function findBreakevenAgeWithToggles(
+export function findBreakevenAgeWithOptions(
   scenario1Data: CumulativeBenefit[],
   scenario2Data: CumulativeBenefit[],
-  withInflation: boolean,
-  withInvestment: boolean,
+  useInflation: boolean,
+  useInvestment: boolean,
   scenario1Yearly?: YearlyBenefit[],
   scenario2Yearly?: YearlyBenefit[],
   investmentGrowthRate1?: number,
@@ -273,7 +271,7 @@ export function findBreakevenAgeWithToggles(
   let benefits1 = scenario1Data;
   let benefits2 = scenario2Data;
 
-  if (withInvestment) {
+  if (useInvestment) {
     if (scenario1Yearly && investmentGrowthRate1 !== undefined) {
       benefits1 = addInvestmentReturns(
         scenario1Data,
@@ -315,9 +313,9 @@ export function findBreakevenAgeWithToggles(
     const yearly1 = scenario1Yearly?.find((b) => b.age === age);
     const yearly2 = scenario2Yearly?.find((b) => b.age === age);
 
-    // Use display values based on toggle state
-    const cumulative1 = getDisplayValue(benefit1, withInflation, withInvestment, yearly1);
-    const cumulative2 = getDisplayValue(benefit2, withInflation, withInvestment, yearly2);
+    // Use display values based on parameters
+    const cumulative1 = getDisplayValue(benefit1, useInflation, useInvestment, yearly1);
+    const cumulative2 = getDisplayValue(benefit2, useInflation, useInvestment, yearly2);
 
     const diff = cumulative1 - cumulative2;
 
