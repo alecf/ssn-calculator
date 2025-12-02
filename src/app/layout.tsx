@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Social Security Benefits Calculator",
+  title: "SSN Power-user calculator",
   description: "Find the optimal age to start collecting Social Security benefits",
 };
 
